@@ -22,3 +22,11 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- Add gallery_images to blogs if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='blogs' AND column_name='gallery_images') THEN
+    ALTER TABLE blogs ADD COLUMN gallery_images TEXT[];
+  END IF;
+END $$;

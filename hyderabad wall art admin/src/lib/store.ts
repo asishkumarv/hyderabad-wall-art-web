@@ -50,6 +50,7 @@ export type BlogPost = {
   excerpt: string;
   content: string;
   image: string;
+  gallery_images?: string[];
   createdAt: number;
 };
 

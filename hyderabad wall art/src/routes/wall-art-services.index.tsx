@@ -74,12 +74,17 @@ function WallArtServicesPage() {
               >
                 <Link 
                   to={
-                    service.key === "home" ? "/wall-art-services/home/living-room" : 
+                    (service.key === "home" ? "/wall-art-services/home/living-room" : 
                     service.key === "commercial" ? "/wall-art-services/commercial/hotels-restaurants" :
                     service.key === "mural" ? "/wall-art-services/mural-paintings" :
                     service.key === "stencil" ? "/wall-art-services/stencil-wall-painting" :
-                    "/wall-art-services"
-                  } 
+                    "/wall-art-services/$serviceKey") as any
+                  }
+                  params={
+                    ((service.key !== "home" && service.key !== "commercial" && service.key !== "mural" && service.key !== "stencil")
+                      ? { serviceKey: service.key }
+                      : undefined) as any
+                  }
                   className="group block"
                 >
                   <div className="relative overflow-hidden rounded-2xl aspect-[4/3] shadow-xl">

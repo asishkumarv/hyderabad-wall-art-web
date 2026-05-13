@@ -35,7 +35,7 @@ const App = () => (
       <AdminThemeProvider>
         <TooltipProvider>
           <Toaster />
-          <Sonner />
+          <Sonner position="top-center" richColors />
           <BrowserRouter>
             <ScrollToTop />
             <Routes>

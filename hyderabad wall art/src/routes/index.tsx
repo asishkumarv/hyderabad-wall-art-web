@@ -47,27 +47,34 @@ function Index() {
   const displayServices = apiServices.length > 0 
     ? apiServices.filter(s => s.isActive).map(s => {
         let to = `/wall-art-services/${s.key}`;
+        let params: any = undefined;
+
         if (s.key === "home") to = "/wall-art-services/home/living-room";
-        if (s.key === "commercial") to = "/wall-art-services/commercial/hotels-restaurants";
-        if (s.key === "mural") to = "/wall-art-services/mural-paintings";
-        if (s.key === "stencil") to = "/wall-art-services/stencil-wall-painting";
+        else if (s.key === "commercial") to = "/wall-art-services/commercial/hotels-restaurants";
+        else if (s.key === "mural") to = "/wall-art-services/mural-paintings";
+        else if (s.key === "stencil") to = "/wall-art-services/stencil-wall-painting";
+        else {
+          to = "/wall-art-services/$serviceKey";
+          params = { serviceKey: s.key };
+        }
         
         return {
           title: s.label,
           desc: s.heroSubtitle,
           image: s.images[0] || livingRoomImg,
-          to: to
+          to: to as any,
+          params
         };
       })
     : [
-        { title: "Living Room", desc: "Premium abstract & modern art", image: livingRoomImg, to: "/wall-art-services/home/living-room" },
-        { title: "Kids Room", desc: "Fun cartoon themes", image: kidsRoomImg, to: "/wall-art-services/home/kids-room" },
-        { title: "3D Painting", desc: "Depth illusion art", image: threeDImg, to: "/wall-art-services/home/3d-painting" },
-        { title: "Hotels & Restaurants", desc: "Themed ambience murals", image: hotelImg, to: "/wall-art-services/commercial/hotels-restaurants" },
-        { title: "Shops & Offices", desc: "Modern branding art", image: officeImg, to: "/wall-art-services/commercial/shops-offices" },
-        { title: "Staircase Wall", desc: "Vertical storytelling art", image: staircaseImg, to: "/wall-art-services/home/staircase" },
-        { title: "School Cartoon", desc: "Educational murals", image: schoolImg, to: "/wall-art-services/commercial/school-cartoon" },
-        { title: "Master Bedroom", desc: "Calm elegant designs", image: bedroomImg, to: "/wall-art-services/home/master-bedroom" },
+        { title: "Living Room", desc: "Premium abstract & modern art", image: livingRoomImg, to: "/wall-art-services/home/living-room", params: undefined },
+        { title: "Kids Room", desc: "Fun cartoon themes", image: kidsRoomImg, to: "/wall-art-services/home/kids-room", params: undefined },
+        { title: "3D Painting", desc: "Depth illusion art", image: threeDImg, to: "/wall-art-services/home/3d-painting", params: undefined },
+        { title: "Hotels & Restaurants", desc: "Themed ambience murals", image: hotelImg, to: "/wall-art-services/commercial/hotels-restaurants", params: undefined },
+        { title: "Shops & Offices", desc: "Modern branding art", image: officeImg, to: "/wall-art-services/commercial/shops-offices", params: undefined },
+        { title: "Staircase Wall", desc: "Vertical storytelling art", image: staircaseImg, to: "/wall-art-services/home/staircase", params: undefined },
+        { title: "School Cartoon", desc: "Educational murals", image: schoolImg, to: "/wall-art-services/commercial/school-cartoon", params: undefined },
+        { title: "Master Bedroom", desc: "Calm elegant designs", image: bedroomImg, to: "/wall-art-services/home/master-bedroom", params: undefined },
       ];
 
   const reviews = apiTestimonials.length > 0
@@ -192,7 +199,7 @@ function Index() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
               >
-                <Link to={service.to} className="group block">
+                <Link to={service.to} params={service.params} className="group block">
                   <div className="relative overflow-hidden rounded-2xl aspect-[4/3] shadow-lg">
                     <img
                       src={service.image}

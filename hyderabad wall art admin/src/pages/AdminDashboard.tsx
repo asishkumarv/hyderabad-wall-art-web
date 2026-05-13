@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   BellRing,
   Bold,
@@ -66,13 +67,13 @@ const sections = [
 ] as const;
 
 type SectionKey = (typeof sections)[number]["key"];
-type BlogDraft = { id?: string; title: string; category: BlogCategory; excerpt: string; content: string; image: string };
+type BlogDraft = { id?: string; title: string; category: BlogCategory; excerpt: string; content: string; image: string; gallery_images: string[] };
 type CategoryDraft = { id?: string; name: string; image: string; description: string };
 type VideoDraft = { id?: string; title: string; thumbnail: string; videoUrl: string; category: VideoCategory };
 type TestimonialDraft = { id?: string; name: string; rating: number; message: string; image: string };
 type ProfileDraft = { name: string; email: string; role: string; phone: string; avatar: string; accountStatus: string; permissions: string[] };
 
-const emptyBlogDraft: BlogDraft = { title: "", category: "Design Tips", excerpt: "", content: "", image: "" };
+const emptyBlogDraft: BlogDraft = { title: "", category: "Design Tips", excerpt: "", content: "", image: "", gallery_images: [] };
 const emptyCategoryDraft: CategoryDraft = { name: "", image: "", description: "" };
 const emptyVideoDraft: VideoDraft = { title: "", thumbnail: "", videoUrl: "", category: "Home" };
 const emptyTestimonialDraft: TestimonialDraft = { name: "", rating: 5, message: "", image: "" };
@@ -206,6 +207,7 @@ export default function AdminDashboard() {
 
   const galleryUploadRef = useRef<HTMLInputElement>(null);
   const blogUploadRef = useRef<HTMLInputElement>(null);
+  const blogGalleryUploadRef = useRef<HTMLInputElement>(null);
   const categoryUploadRef = useRef<HTMLInputElement>(null);
   const videoUploadRef = useRef<HTMLInputElement>(null);
   const testimonialUploadRef = useRef<HTMLInputElement>(null);
@@ -256,6 +258,14 @@ export default function AdminDashboard() {
     (event.target as HTMLInputElement).value = "";
   };
 
+  const handleMultipleUpload = async (event: ChangeEvent<HTMLInputElement>, onDone: (values: string[]) => void) => {
+    const files = event.target.files;
+    if (!files) return;
+    const urls = await Promise.all(Array.from(files).map(f => fileToDataUrl(f)));
+    onDone(urls);
+    (event.target as HTMLInputElement).value = "";
+  };
+
   useEffect(() => {
     if (user && !profileDraft) {
       setProfileDraft({
@@ -292,41 +302,61 @@ export default function AdminDashboard() {
     }
   }, [services, serviceDrafts]);
 
-  const saveBlogDraft = () => {
+  const saveBlogDraft = async () => {
     if (!blogDraft.title.trim() || !blogDraft.content.trim()) return;
     const payload = {
       ...blogDraft,
       slug: slugify(blogDraft.title),
       image: blogDraft.image || "/hwa-wall-bg.jpg",
     };
-    if (blogDraft.id) updateBlogPost(blogDraft.id, payload);
-    else addBlogPost(payload);
-    setBlogDraft(emptyBlogDraft);
+    try {
+      if (blogDraft.id) await updateBlogPost(blogDraft.id, payload);
+      else await addBlogPost(payload);
+      toast.success(blogDraft.id ? "Blog post updated!" : "Blog post published!");
+      setBlogDraft(emptyBlogDraft);
+    } catch (err) {
+      toast.error("Failed to save blog post");
+    }
   };
 
-  const saveCategoryDraft = () => {
+  const saveCategoryDraft = async () => {
     if (!categoryDraft.name.trim()) return;
-    if (categoryDraft.id) updateCategory(categoryDraft.id, categoryDraft);
-    else addCategory({ ...categoryDraft, image: categoryDraft.image || "/hwa-wall-bg.jpg" });
-    setCategoryDraft(emptyCategoryDraft);
+    try {
+      if (categoryDraft.id) await updateCategory(categoryDraft.id, categoryDraft);
+      else await addCategory({ ...categoryDraft, image: categoryDraft.image || "/hwa-wall-bg.jpg" });
+      toast.success(categoryDraft.id ? "Category updated!" : "Category added!");
+      setCategoryDraft(emptyCategoryDraft);
+    } catch (err) {
+      toast.error("Failed to save category");
+    }
   };
 
-  const saveVideoDraft = () => {
+  const saveVideoDraft = async () => {
     if (!videoDraft.title.trim() || !videoDraft.videoUrl.trim()) return;
-    if (videoDraft.id) updateVideo(videoDraft.id, { ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
-    else addVideo({ ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
-    setVideoDraft(emptyVideoDraft);
+    try {
+      if (videoDraft.id) await updateVideo(videoDraft.id, { ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
+      else await addVideo({ ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
+      toast.success(videoDraft.id ? "Video updated!" : "Video added!");
+      setVideoDraft(emptyVideoDraft);
+    } catch (err) {
+      toast.error("Failed to save video");
+    }
   };
 
-  const saveTestimonialDraft = () => {
+  const saveTestimonialDraft = async () => {
     if (!testimonialDraft.name.trim() || !testimonialDraft.message.trim()) return;
     const payload = {
       ...testimonialDraft,
       image: testimonialDraft.image || "",
     };
-    if (testimonialDraft.id) updateTestimonial(testimonialDraft.id, payload);
-    else addTestimonial(payload);
-    setTestimonialDraft(emptyTestimonialDraft);
+    try {
+      if (testimonialDraft.id) await updateTestimonial(testimonialDraft.id, payload);
+      else await addTestimonial(payload);
+      toast.success(testimonialDraft.id ? "Testimonial updated!" : "Testimonial added!");
+      setTestimonialDraft(emptyTestimonialDraft);
+    } catch (err) {
+      toast.error("Failed to save testimonial");
+    }
   };
 
   return (
@@ -576,21 +606,27 @@ export default function AdminDashboard() {
                     <div className="mb-6 flex justify-end">
                       <Button 
                         variant="luxury" 
-                        onClick={() => {
+                        onClick={async () => {
                           const newKey = `service-${Date.now()}`;
-                          updateService(newKey as any, {
-                            label: "New Service",
-                            heroTitle: "New Service Title",
-                            heroSubtitle: "New Service Subtitle",
-                            whyChooseUs: [],
-                            isActive: false,
-                            category: "Home",
-                            subcategory: "General",
-                            description: "New service description",
-                            images: [],
-                            benefits: [],
-                            relatedServices: []
-                          });
+                          try {
+                            await updateService(newKey as any, {
+                              label: "New Service",
+                              heroTitle: "New Service Title",
+                              heroSubtitle: "New Service Subtitle",
+                              whyChooseUs: [],
+                              isActive: false,
+                              category: "Home",
+                              subcategory: "General",
+                              description: "New service description",
+                              images: [],
+                              benefits: [],
+                              relatedServices: []
+                            });
+                            toast.success("New service added successfully!");
+                          } catch (err) {
+                            toast.error("Failed to add service");
+                            console.error(err);
+                          }
                         }}
                       >
                         <Plus className="mr-2 h-4 w-4" />
@@ -667,12 +703,31 @@ export default function AdminDashboard() {
                                       onChange={async (event) => handleSingleUpload(event, (value) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, images: [...(draft.images || []), value] } }))}
                                     />
                                   </div>
-                                  <Textarea
-                                    value={(draft.images || []).join("\n")}
-                                    onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, images: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) } })}
-                                    className="min-h-[100px]"
-                                    placeholder="One image URL or base64 string per line"
-                                  />
+                                  <div className="flex flex-wrap gap-3">
+                                    {(draft.images || []).map((img: string, idx: number) => (
+                                      <div key={`${service.key}-img-${idx}`} className="relative group aspect-square w-24 rounded-lg overflow-hidden border border-border/70 shadow-sm">
+                                        <img src={img} alt={`Service image ${idx}`} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <Button 
+                                            variant="destructive" 
+                                            size="icon" 
+                                            className="h-7 w-7"
+                                            onClick={() => {
+                                              const newImages = (draft.images || []).filter((_: any, i: number) => i !== idx);
+                                              setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, images: newImages } });
+                                            }}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {(!draft.images || draft.images.length === 0) && (
+                                      <div className="flex h-24 w-full items-center justify-center rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground">
+                                        No images uploaded
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
@@ -790,7 +845,19 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
 
-                              <Button variant="luxury" className="w-full mt-4" onClick={() => updateService(service.key, draft)}>
+                              <Button 
+                                variant="luxury" 
+                                className="w-full mt-4" 
+                                onClick={async () => {
+                                  try {
+                                    await updateService(service.key, draft);
+                                    toast.success(`${service.label} service updated successfully!`);
+                                  } catch (err) {
+                                    toast.error(`Failed to update ${service.label} service`);
+                                    console.error(err);
+                                  }
+                                }}
+                              >
                                 Update {service.label} Service
                               </Button>
                             </CardContent>
@@ -842,6 +909,46 @@ export default function AdminDashboard() {
                           <input ref={blogUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setBlogDraft((draft) => ({ ...draft, image: value })))} />
                         </div>
                         <Textarea value={blogDraft.content || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, content: event.target.value }))} className="min-h-[400px]" placeholder="Blog content (Markdown supported)" />
+                        
+                        <div className="space-y-3 rounded-2xl border border-border/70 bg-canvas-texture p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Related Work Gallery</p>
+                            <Button variant="glass" size="sm" onClick={() => blogGalleryUploadRef.current?.click()}>
+                              <UploadCloud className="h-4 w-4 mr-2" />
+                              Upload Works
+                            </Button>
+                            <input 
+                              ref={blogGalleryUploadRef} 
+                              type="file" 
+                              multiple 
+                              accept="image/*" 
+                              className="hidden" 
+                              onChange={(e) => handleMultipleUpload(e, (urls) => setBlogDraft(d => ({ ...d, gallery_images: [...(d.gallery_images || []), ...urls] })))} 
+                            />
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            {(blogDraft.gallery_images || []).map((img, idx) => (
+                              <div key={`blog-gal-${idx}`} className="relative group aspect-square w-20 rounded-lg overflow-hidden border border-border/70">
+                                <img src={img} alt="" className="h-full w-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Button 
+                                    variant="destructive" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={() => setBlogDraft(d => ({ ...d, gallery_images: d.gallery_images.filter((_, i) => i !== idx) }))}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            {(!blogDraft.gallery_images || blogDraft.gallery_images.length === 0) && (
+                              <div className="flex h-20 w-full items-center justify-center rounded-lg border border-dashed border-border/70 text-[10px] text-muted-foreground">
+                                No related work images
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setBlogDraft(emptyBlogDraft)}>Clear</Button>
                           <Button variant="luxury" onClick={saveBlogDraft}>{blogDraft.id ? "Update post" : "Publish post"}</Button>
@@ -882,7 +989,7 @@ export default function AdminDashboard() {
                                     <p className="mt-1 text-sm text-muted-foreground">{post.excerpt}</p>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => setBlogDraft({ id: post.id, title: post.title, category: post.category, excerpt: post.excerpt, content: post.content, image: post.image })} aria-label="Edit post">
+                                    <Button variant="ghost" size="icon" onClick={() => setBlogDraft({ id: post.id, title: post.title, category: post.category, excerpt: post.excerpt, content: post.content, image: post.image, gallery_images: post.gallery_images || [] })} aria-label="Edit post">
                                       <FileText className="h-4 w-4" />
                                     </Button>
                                     <Button variant="ghost" size="icon" onClick={() => deleteBlogPost(post.id)} aria-label="Delete post">
@@ -1040,7 +1147,20 @@ export default function AdminDashboard() {
                           </div>
                           <Textarea value={(pagesDraft.home.heroImages || []).join("\n")} onChange={(event) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroImages: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) } })} className="min-h-[160px]" placeholder="One image URL or base64 string per line" />
                         </div>
-                        <Button variant="luxury" className="w-full" onClick={() => updateHomePage(pagesDraft.home)}>Save Home Page</Button>
+                        <Button 
+                          variant="luxury" 
+                          className="w-full" 
+                          onClick={async () => {
+                            try {
+                              await updateHomePage(pagesDraft.home);
+                              toast.success("Home page updated!");
+                            } catch (err) {
+                              toast.error("Failed to update home page");
+                            }
+                          }}
+                        >
+                          Save Home Page
+                        </Button>
                       </div>
                     </ModuleShell>
 
@@ -1073,7 +1193,20 @@ export default function AdminDashboard() {
                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Founder Description</label>
                           <Textarea value={pagesDraft.about.founderDescription || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderDescription: event.target.value } })} className="min-h-[120px]" placeholder="Founder description" />
                         </div>
-                        <Button variant="luxury" className="w-full" onClick={() => updateAboutPage(pagesDraft.about)}>Save About Page</Button>
+                        <Button 
+                          variant="luxury" 
+                          className="w-full" 
+                          onClick={async () => {
+                            try {
+                              await updateAboutPage(pagesDraft.about);
+                              toast.success("About page updated!");
+                            } catch (err) {
+                              toast.error("Failed to update about page");
+                            }
+                          }}
+                        >
+                          Save About Page
+                        </Button>
                       </div>
                     </ModuleShell>
 
@@ -1099,7 +1232,20 @@ export default function AdminDashboard() {
                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Map Embed URL</label>
                           <Textarea value={pagesDraft.contact.mapEmbed || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, mapEmbed: event.target.value } })} className="min-h-[120px]" placeholder="Map embed URL" />
                         </div>
-                        <Button variant="luxury" className="w-full" onClick={() => updateContactPage(pagesDraft.contact)}>Save Contact Page</Button>
+                        <Button 
+                          variant="luxury" 
+                          className="w-full" 
+                          onClick={async () => {
+                            try {
+                              await updateContactPage(pagesDraft.contact);
+                              toast.success("Contact page updated!");
+                            } catch (err) {
+                              toast.error("Failed to update contact page");
+                            }
+                          }}
+                        >
+                          Save Contact Page
+                        </Button>
                       </div>
                     </ModuleShell>
                   </div>
@@ -1301,7 +1447,20 @@ export default function AdminDashboard() {
                            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Office Address</label>
                            <Textarea value={settingsDraft.officeAddress || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, officeAddress: event.target.value })} className="min-h-[100px]" placeholder="Office address in Hyderabad" />
                         </div>
-                        <Button variant="luxury" className="w-full mt-2" onClick={() => updateSettings(settingsDraft)}>Save Global Settings</Button>
+                        <Button 
+                          variant="luxury" 
+                          className="w-full" 
+                          onClick={async () => {
+                            try {
+                              await updateSettings(settingsDraft);
+                              toast.success("General settings updated!");
+                            } catch (err) {
+                              toast.error("Failed to update settings");
+                            }
+                          }}
+                        >
+                          Save General Settings
+                        </Button>
                       </div>
                       <Card className="panel-luxury bg-canvas-texture">
                         <CardContent className="space-y-5 p-6">

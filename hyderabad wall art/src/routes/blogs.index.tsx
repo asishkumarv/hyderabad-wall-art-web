@@ -6,6 +6,7 @@ import muralImg from "@/assets/service-mural.jpg";
 import hotelImg from "@/assets/service-hotel.jpg";
 import kidsRoomImg from "@/assets/service-kids-room.jpg";
 import stencilImg from "@/assets/service-stencil.jpg";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/blogs/")({
   head: () => ({
@@ -19,16 +20,26 @@ export const Route = createFileRoute("/blogs/")({
   component: BlogsPage,
 });
 
-const blogs = [
-  { slug: "living-room-wall-art-ideas", title: "Top Living Room Wall Art Ideas for Modern Homes", excerpt: "Discover the latest trends in wall art that are transforming living rooms into stunning spaces. From abstract designs to nature-inspired murals...", date: "Apr 15, 2026", category: "Trends", image: livingRoomImg },
-  { slug: "how-to-choose-wall-art", title: "How to Choose the Right Wall Art for Your Space", excerpt: "A comprehensive guide to selecting wall art that complements your interior decor, color scheme, and personal style...", date: "Apr 10, 2026", category: "Tips", image: muralImg },
-  { slug: "rise-of-3d-wall-paintings", title: "The Rise of 3D Wall Paintings in Indian Homes", excerpt: "3D wall paintings are becoming increasingly popular in Indian households. Here's why they're the hottest trend in wall art...", date: "Apr 5, 2026", category: "Inspiration", image: threeDImg },
-  { slug: "commercial-wall-art-business", title: "Commercial Wall Art: Transform Your Business Space", excerpt: "Learn how wall art can enhance your business environment, attract customers, and leave lasting impressions on visitors...", date: "Mar 28, 2026", category: "Commercial", image: hotelImg },
-  { slug: "behind-the-scenes-mural", title: "Behind the Scenes: Creating a Large-Scale Mural", excerpt: "Take a peek into our artistic process from concept sketch to completed mural. Learn about techniques and materials...", date: "Mar 20, 2026", category: "Process", image: stencilImg },
-  { slug: "kids-room-wall-art-ideas", title: "Creative Kids Room Wall Art Ideas", excerpt: "Transform your child's room into a magical wonderland with these creative and fun wall art ideas that spark imagination...", date: "Mar 15, 2026", category: "Ideas", image: kidsRoomImg },
-];
 
 function BlogsPage() {
+  const { blogPosts: apiBlogs, isLoading } = useStore();
+
+  if (isLoading) return <div className="py-40 text-center">Loading blogs...</div>;
+
+  const blogs = apiBlogs.length > 0 
+    ? apiBlogs.map((b: any) => ({
+        slug: b.slug,
+        title: b.title,
+        excerpt: b.excerpt,
+        date: new Date(b.createdAt || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        category: b.category,
+        image: b.image || livingRoomImg
+      }))
+    : [
+        { slug: "living-room-wall-art-ideas", title: "Top Living Room Wall Art Ideas for Modern Homes", excerpt: "Discover the latest trends in wall art that are transforming living rooms into stunning spaces...", date: "Apr 15, 2026", category: "Trends", image: livingRoomImg },
+        { slug: "how-to-choose-wall-art", title: "How to Choose the Right Wall Art for Your Space", excerpt: "A comprehensive guide to selecting wall art that complements your interior decor...", date: "Apr 10, 2026", category: "Tips", image: muralImg },
+      ];
+
   return (
     <div>
       <section className="py-20 bg-navy">

@@ -204,7 +204,7 @@ exports.updateLead = update('leads');
 exports.deleteLead = remove('leads');
 
 exports.getBlogs = getAll('blogs');
-exports.createBlog = create('blogs', ['title', 'slug', 'category', 'excerpt', 'content', 'image']);
+exports.createBlog = create('blogs', ['title', 'slug', 'category', 'excerpt', 'content', 'image', 'gallery_images']);
 exports.updateBlog = update('blogs');
 exports.deleteBlog = remove('blogs');
 

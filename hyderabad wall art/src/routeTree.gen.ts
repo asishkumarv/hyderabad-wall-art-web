@@ -20,6 +20,7 @@ import { Route as BlogsIndexRouteImport } from './routes/blogs.index'
 import { Route as WallArtServicesWoodCarvedWallArtRouteImport } from './routes/wall-art-services.wood-carved-wall-art'
 import { Route as WallArtServicesStencilWallPaintingRouteImport } from './routes/wall-art-services.stencil-wall-painting'
 import { Route as WallArtServicesMuralPaintingsRouteImport } from './routes/wall-art-services.mural-paintings'
+import { Route as WallArtServicesServiceKeyRouteImport } from './routes/wall-art-services.$serviceKey'
 import { Route as ServicesWallpaperRouteImport } from './routes/services.wallpaper'
 import { Route as BlogsSlugRouteImport } from './routes/blogs.$slug'
 import { Route as WallArtServicesHomeTvUnitRouteImport } from './routes/wall-art-services.home.tv-unit'
@@ -91,6 +92,12 @@ const WallArtServicesMuralPaintingsRoute =
   WallArtServicesMuralPaintingsRouteImport.update({
     id: '/mural-paintings',
     path: '/mural-paintings',
+    getParentRoute: () => WallArtServicesRoute,
+  } as any)
+const WallArtServicesServiceKeyRoute =
+  WallArtServicesServiceKeyRouteImport.update({
+    id: '/$serviceKey',
+    path: '/$serviceKey',
     getParentRoute: () => WallArtServicesRoute,
   } as any)
 const ServicesWallpaperRoute = ServicesWallpaperRouteImport.update({
@@ -185,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/wall-art-services': typeof WallArtServicesRouteWithChildren
   '/blogs/$slug': typeof BlogsSlugRoute
   '/services/wallpaper': typeof ServicesWallpaperRoute
+  '/wall-art-services/$serviceKey': typeof WallArtServicesServiceKeyRoute
   '/wall-art-services/mural-paintings': typeof WallArtServicesMuralPaintingsRoute
   '/wall-art-services/stencil-wall-painting': typeof WallArtServicesStencilWallPaintingRoute
   '/wall-art-services/wood-carved-wall-art': typeof WallArtServicesWoodCarvedWallArtRoute
@@ -210,6 +218,7 @@ export interface FileRoutesByTo {
   '/videos': typeof VideosRoute
   '/blogs/$slug': typeof BlogsSlugRoute
   '/services/wallpaper': typeof ServicesWallpaperRoute
+  '/wall-art-services/$serviceKey': typeof WallArtServicesServiceKeyRoute
   '/wall-art-services/mural-paintings': typeof WallArtServicesMuralPaintingsRoute
   '/wall-art-services/stencil-wall-painting': typeof WallArtServicesStencilWallPaintingRoute
   '/wall-art-services/wood-carved-wall-art': typeof WallArtServicesWoodCarvedWallArtRoute
@@ -238,6 +247,7 @@ export interface FileRoutesById {
   '/wall-art-services': typeof WallArtServicesRouteWithChildren
   '/blogs/$slug': typeof BlogsSlugRoute
   '/services/wallpaper': typeof ServicesWallpaperRoute
+  '/wall-art-services/$serviceKey': typeof WallArtServicesServiceKeyRoute
   '/wall-art-services/mural-paintings': typeof WallArtServicesMuralPaintingsRoute
   '/wall-art-services/stencil-wall-painting': typeof WallArtServicesStencilWallPaintingRoute
   '/wall-art-services/wood-carved-wall-art': typeof WallArtServicesWoodCarvedWallArtRoute
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/wall-art-services'
     | '/blogs/$slug'
     | '/services/wallpaper'
+    | '/wall-art-services/$serviceKey'
     | '/wall-art-services/mural-paintings'
     | '/wall-art-services/stencil-wall-painting'
     | '/wall-art-services/wood-carved-wall-art'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/videos'
     | '/blogs/$slug'
     | '/services/wallpaper'
+    | '/wall-art-services/$serviceKey'
     | '/wall-art-services/mural-paintings'
     | '/wall-art-services/stencil-wall-painting'
     | '/wall-art-services/wood-carved-wall-art'
@@ -319,6 +331,7 @@ export interface FileRouteTypes {
     | '/wall-art-services'
     | '/blogs/$slug'
     | '/services/wallpaper'
+    | '/wall-art-services/$serviceKey'
     | '/wall-art-services/mural-paintings'
     | '/wall-art-services/stencil-wall-painting'
     | '/wall-art-services/wood-carved-wall-art'
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/mural-paintings'
       fullPath: '/wall-art-services/mural-paintings'
       preLoaderRoute: typeof WallArtServicesMuralPaintingsRouteImport
+      parentRoute: typeof WallArtServicesRoute
+    }
+    '/wall-art-services/$serviceKey': {
+      id: '/wall-art-services/$serviceKey'
+      path: '/$serviceKey'
+      fullPath: '/wall-art-services/$serviceKey'
+      preLoaderRoute: typeof WallArtServicesServiceKeyRouteImport
       parentRoute: typeof WallArtServicesRoute
     }
     '/services/wallpaper': {
@@ -541,6 +561,7 @@ const BlogsRouteChildren: BlogsRouteChildren = {
 const BlogsRouteWithChildren = BlogsRoute._addFileChildren(BlogsRouteChildren)
 
 interface WallArtServicesRouteChildren {
+  WallArtServicesServiceKeyRoute: typeof WallArtServicesServiceKeyRoute
   WallArtServicesMuralPaintingsRoute: typeof WallArtServicesMuralPaintingsRoute
   WallArtServicesStencilWallPaintingRoute: typeof WallArtServicesStencilWallPaintingRoute
   WallArtServicesWoodCarvedWallArtRoute: typeof WallArtServicesWoodCarvedWallArtRoute
@@ -560,6 +581,7 @@ interface WallArtServicesRouteChildren {
 }
 
 const WallArtServicesRouteChildren: WallArtServicesRouteChildren = {
+  WallArtServicesServiceKeyRoute: WallArtServicesServiceKeyRoute,
   WallArtServicesMuralPaintingsRoute: WallArtServicesMuralPaintingsRoute,
   WallArtServicesStencilWallPaintingRoute:
     WallArtServicesStencilWallPaintingRoute,
