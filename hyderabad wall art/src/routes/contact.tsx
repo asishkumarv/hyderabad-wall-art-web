@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -15,12 +16,33 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
+  const { pages, settings, submitContact, isLoading } = useStore();
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", service: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+
+  const { contact } = pages;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    try {
+      await submitContact({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        service_requested: formData.service,
+        message: formData.message,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Submission failed:", err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -96,8 +118,12 @@ function ContactPage() {
                       className="w-full px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     />
                   </div>
-                  <button type="submit" className="w-full py-3.5 gradient-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-lg">
-                    Send Message
+                  <button 
+                    type="submit" 
+                    disabled={submitting}
+                    className="w-full py-3.5 gradient-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50"
+                  >
+                    {submitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
               )}
@@ -108,9 +134,9 @@ function ContactPage() {
                 <h3 className="font-heading text-xl font-bold text-foreground mb-4">Get In Touch</h3>
                 <div className="space-y-4">
                   {[
-                    { icon: "📍", label: "Address", value: "Hyderabad, Telangana, India" },
-                    { icon: "📞", label: "Phone", value: "+91 98765 43210" },
-                    { icon: "📧", label: "Email", value: "info@hyderabadwallarts.com" },
+                    { icon: "📍", label: "Address", value: contact.address || "Hyderabad, Telangana, India" },
+                    { icon: "📞", label: "Phone", value: contact.phone || "+91 98765 43210" },
+                    { icon: "📧", label: "Email", value: contact.email || "info@hyderabadwallarts.com" },
                     { icon: "⏰", label: "Working Hours", value: "Mon - Sat: 9:00 AM - 7:00 PM" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-4 p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
@@ -126,7 +152,7 @@ function ContactPage() {
 
               {/* WhatsApp Quick Connect */}
               <a
-                href="https://wa.me/919876543210"
+                href={`https://wa.me/${contact.whatsapp.replace(/\+/g, "") || "919876543210"}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 p-5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-colors"
@@ -145,7 +171,7 @@ function ContactPage() {
               {/* Map */}
               <div className="rounded-2xl overflow-hidden border border-border h-64 bg-muted">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d243647.3170694512!2d78.24323004062592!3d17.412608639498044!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb99daeaebd2c7%3A0xae93b78392bafbc2!2sHyderabad%2C%20Telangana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                  src={contact.mapEmbed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d243647.3170694512!2d78.24323004062592!3d17.412608639498044!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb99daeaebd2c7%3A0xae93b78392bafbc2!2sHyderabad%2C%20Telangana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"}
                   className="w-full h-full border-0"
                   allowFullScreen
                   loading="lazy"

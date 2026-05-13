@@ -11,6 +11,7 @@ export const Route = createFileRoute("/wall-art-services/mural-paintings")({
   }),
   component: () => (
     <ServicePageLayout
+      serviceKey="mural"
       title="Mural Paintings"
       subtitle="Wall Art Services"
       description="Large-scale artistic murals that tell stories and transform entire walls into magnificent works of art. From cultural themes to contemporary designs, our mural artists bring vision to life on indoor and outdoor walls."

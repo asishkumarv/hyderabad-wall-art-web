@@ -11,7 +11,8 @@ export const Route = createFileRoute("/wall-art-services/commercial/hotels-resta
   }),
   component: () => (
     <ServicePageLayout
-      title="Hotels & Restaurants"
+      serviceKey="commercial"
+      title="Hotels & Restaurants Wall Art"
       subtitle="Commercial Wall Art"
       description="Create immersive dining experiences with themed wall art, murals, textured finishes, and artistic concepts tailored to your brand. Our designs enhance ambience, attract customers, and create Instagram-worthy interiors."
       image={hotelImg}

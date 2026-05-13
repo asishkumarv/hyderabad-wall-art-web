@@ -14,6 +14,8 @@ export type ServiceContent = {
   subcategory: string;
   description: string;
   images: string[];
+  benefits: string[];
+  relatedServices: { label: string; to: string }[];
 };
 
 export type GalleryImage = {
@@ -39,7 +41,7 @@ export type LeadRecord = {
   status: LeadStatus;
 };
 
-export type BlogCategory = "Design Tips" | "Process" | "Case Studies";
+export type BlogCategory = string;
 export type BlogPost = {
   id: string;
   title: string;
@@ -200,53 +202,55 @@ export function useStore() {
           heroSubtitle: s.hero_subtitle,
           whyChooseUs: s.why_choose_us,
           isActive: s.is_active,
+          benefits: s.benefits || [],
+          relatedServices: s.related_services || [],
         })),
-        gallery: gallery.map((g: any) => ({
+        gallery: Array.isArray(gallery) ? gallery.map((g: any) => ({
           ...g,
           altText: g.alt_text,
           imageUrl: g.image_url,
           createdAt: new Date(g.created_at).getTime(),
-        })),
-        leads: leads.map((l: any) => ({
+        })) : [],
+        leads: Array.isArray(leads) ? leads.map((l: any) => ({
           ...l,
           locationTag: l.location_tag,
           suggestedLocation: l.suggested_location,
           createdAt: new Date(l.created_at).getTime(),
           lastStatusChangeAt: new Date(l.last_status_change_at).getTime(),
-        })),
-        blogPosts: blogs.map((b: any) => ({
+        })) : [],
+        blogPosts: Array.isArray(blogs) ? blogs.map((b: any) => ({
           ...b,
           createdAt: new Date(b.created_at).getTime(),
-        })),
-        categories,
-        videos: videos.map((v: any) => ({
+        })) : [],
+        categories: Array.isArray(categories) ? categories : [],
+        videos: Array.isArray(videos) ? videos.map((v: any) => ({
           ...v,
           videoUrl: v.video_url,
-        })),
-        testimonials: testimonials.map((t: any) => ({
+        })) : [],
+        testimonials: Array.isArray(testimonials) ? testimonials.map((t: any) => ({
           ...t,
           createdAt: new Date(t.created_at).getTime(),
-        })),
-        contacts: contacts.map((c: any) => ({
+        })) : [],
+        contacts: Array.isArray(contacts) ? contacts.map((c: any) => ({
           ...c,
           date: new Date(c.created_at).getTime(),
-        })),
-        activities: activities.map((a: any) => ({
+        })) : [],
+        activities: Array.isArray(activities) ? activities.map((a: any) => ({
           ...a,
-          timestamp: new Date(a.timestamp).getTime(),
-        })),
+          timestamp: new Date(a.created_at).getTime(),
+        })) : [],
         pages: {
-          home: pages.home || { heroTitle: "", heroImages: [] },
-          about: pages.about || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
-          contact: pages.contact || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
+          home: (pages && pages.home) || { heroTitle: "", heroImages: [] },
+          about: (pages && pages.about) || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
+          contact: (pages && pages.contact) || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
         },
-        settings: {
+        settings: settings ? {
           ...settings,
           siteName: settings.site_name,
           whatsappNumber: settings.whatsapp_number,
           instagramUrl: settings.instagram_url,
           officeAddress: settings.office_address,
-        },
+        } : data.settings,
       });
     } catch (err) {
       console.error("Failed to fetch store data:", err);
@@ -276,18 +280,25 @@ export function useStore() {
     blogs: data.blogPosts,
     hyderabadAreas: HYDERABAD_AREAS,
     addActivity: (message: string) => apiCall("activities", "POST", { message }),
-    updateService: (key: ServiceKey, patch: any) => apiCall(`services/${key}`, "PUT", {
-      ...patch,
-      hero_title: patch.heroTitle,
-      hero_subtitle: patch.heroSubtitle,
-      why_choose_us: patch.whyChooseUs,
-      is_active: patch.isActive,
-    }),
+    updateService: (key: ServiceKey, patch: any) => {
+      const body: any = {};
+      if (patch.label !== undefined) body.label = patch.label;
+      if (patch.heroTitle !== undefined) body.hero_title = patch.heroTitle;
+      if (patch.heroSubtitle !== undefined) body.hero_subtitle = patch.heroSubtitle;
+      if (patch.whyChooseUs !== undefined) body.why_choose_us = patch.whyChooseUs;
+      if (patch.isActive !== undefined) body.is_active = patch.isActive;
+      if (patch.category !== undefined) body.category = patch.category;
+      if (patch.subcategory !== undefined) body.subcategory = patch.subcategory;
+      if (patch.description !== undefined) body.description = patch.description;
+      if (patch.images !== undefined) body.images = patch.images;
+      if (patch.benefits !== undefined) body.benefits = patch.benefits;
+      if (patch.relatedServices !== undefined) body.related_services = patch.relatedServices;
+      return apiCall(`services/${key}`, "PUT", body);
+    },
     addWhyPoint: (key: ServiceKey) => {
       const service = data.services.find(s => s.key === key);
       if (!service) return;
       return apiCall(`services/${key}`, "PUT", {
-        ...service,
         why_choose_us: [...service.whyChooseUs, "New selling point"],
       });
     },
@@ -297,7 +308,6 @@ export function useStore() {
       const whyChooseUs = [...service.whyChooseUs];
       whyChooseUs[index] = value;
       return apiCall(`services/${key}`, "PUT", {
-        ...service,
         why_choose_us: whyChooseUs,
       });
     },
@@ -305,27 +315,36 @@ export function useStore() {
       const service = data.services.find(s => s.key === key);
       if (!service) return;
       return apiCall(`services/${key}`, "PUT", {
-        ...service,
         why_choose_us: service.whyChooseUs.filter((_, i) => i !== index),
       });
     },
     addGalleryImage: (image: any) => apiCall("gallery", "POST", {
-      ...image,
+      title: image.title,
+      category: image.category,
       alt_text: image.altText,
       image_url: image.imageUrl,
     }),
-    updateGalleryImage: (id: string, patch: any) => apiCall(`gallery/${id}`, "PUT", {
-      ...patch,
-      alt_text: patch.altText,
-      image_url: patch.imageUrl,
-    }),
+    updateGalleryImage: (id: string, patch: any) => {
+      const body: any = {};
+      if (patch.title !== undefined) body.title = patch.title;
+      if (patch.category !== undefined) body.category = patch.category;
+      if (patch.altText !== undefined) body.alt_text = patch.altText;
+      if (patch.imageUrl !== undefined) body.image_url = patch.imageUrl;
+      return apiCall(`gallery/${id}`, "PUT", body);
+    },
     deleteGalleryImage: (id: string) => apiCall(`gallery/${id}`, "DELETE"),
-    updateLead: (id: string, patch: any) => apiCall(`leads/${id}`, "PUT", {
-      ...patch,
-      location_tag: patch.locationTag,
-      suggested_location: patch.suggestedLocation,
-      last_status_change_at: patch.lastStatusChangeAt ? new Date(patch.lastStatusChangeAt).toISOString() : undefined,
-    }),
+    updateLead: (id: string, patch: any) => {
+      const body: any = {};
+      if (patch.name !== undefined) body.name = patch.name;
+      if (patch.phone !== undefined) body.phone = patch.phone;
+      if (patch.inquiry !== undefined) body.inquiry = patch.inquiry;
+      if (patch.source !== undefined) body.source = patch.source;
+      if (patch.locationTag !== undefined) body.location_tag = patch.locationTag;
+      if (patch.suggestedLocation !== undefined) body.suggested_location = patch.suggestedLocation;
+      if (patch.status !== undefined) body.status = patch.status;
+      if (patch.lastStatusChangeAt !== undefined) body.last_status_change_at = new Date(patch.lastStatusChangeAt).toISOString();
+      return apiCall(`leads/${id}`, "PUT", body);
+    },
     addBlogPost: (post: any) => apiCall("blogs", "POST", post),
     updateBlogPost: (id: string, patch: any) => apiCall(`blogs/${id}`, "PUT", patch),
     deleteBlogPost: (id: string) => apiCall(`blogs/${id}`, "DELETE"),
@@ -333,13 +352,19 @@ export function useStore() {
     updateCategory: (id: string, patch: any) => apiCall(`categories/${id}`, "PUT", patch),
     deleteCategory: (id: string) => apiCall(`categories/${id}`, "DELETE"),
     addVideo: (video: any) => apiCall("videos", "POST", {
-      ...video,
+      title: video.title,
+      thumbnail: video.thumbnail,
       video_url: video.videoUrl,
+      category: video.category,
     }),
-    updateVideo: (id: string, patch: any) => apiCall(`videos/${id}`, "PUT", {
-      ...patch,
-      video_url: patch.videoUrl,
-    }),
+    updateVideo: (id: string, patch: any) => {
+      const body: any = {};
+      if (patch.title !== undefined) body.title = patch.title;
+      if (patch.thumbnail !== undefined) body.thumbnail = patch.thumbnail;
+      if (patch.videoUrl !== undefined) body.video_url = patch.videoUrl;
+      if (patch.category !== undefined) body.category = patch.category;
+      return apiCall(`videos/${id}`, "PUT", body);
+    },
     deleteVideo: (id: string) => apiCall(`videos/${id}`, "DELETE"),
     addTestimonial: (testimonial: any) => apiCall("testimonials", "POST", testimonial),
     updateTestimonial: (id: string, patch: any) => apiCall(`testimonials/${id}`, "PUT", patch),
@@ -348,12 +373,16 @@ export function useStore() {
     updateAboutPage: (patch: any) => apiCall("pages/about", "PUT", { content: { ...data.pages.about, ...patch } }),
     updateContactPage: (patch: any) => apiCall("pages/contact", "PUT", { content: { ...data.pages.contact, ...patch } }),
     addContactSubmission: (submission: any) => apiCall("contacts", "POST", submission),
-    updateSettings: (patch: any) => apiCall("settings", "PUT", {
-      ...patch,
-      site_name: patch.siteName,
-      whatsapp_number: patch.whatsappNumber,
-      instagram_url: patch.instagramUrl,
-      office_address: patch.officeAddress,
-    }),
+    updateSettings: (patch: any) => {
+      const body: any = {};
+      if (patch.siteName !== undefined) body.site_name = patch.siteName;
+      if (patch.logo !== undefined) body.logo = patch.logo;
+      if (patch.social !== undefined) body.social = patch.social;
+      if (patch.footer !== undefined) body.footer = patch.footer;
+      if (patch.whatsappNumber !== undefined) body.whatsapp_number = patch.whatsappNumber;
+      if (patch.instagramUrl !== undefined) body.instagram_url = patch.instagramUrl;
+      if (patch.officeAddress !== undefined) body.office_address = patch.officeAddress;
+      return apiCall("settings", "PUT", body);
+    },
   };
 }

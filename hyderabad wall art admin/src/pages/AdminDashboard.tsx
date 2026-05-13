@@ -25,7 +25,7 @@ import {
   Video,
   Wallpaper,
 } from "lucide-react";
-import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useThemeMode } from "@/components/admin/AdminThemeProvider";
@@ -70,6 +70,7 @@ type BlogDraft = { id?: string; title: string; category: BlogCategory; excerpt: 
 type CategoryDraft = { id?: string; name: string; image: string; description: string };
 type VideoDraft = { id?: string; title: string; thumbnail: string; videoUrl: string; category: VideoCategory };
 type TestimonialDraft = { id?: string; name: string; rating: number; message: string; image: string };
+type ProfileDraft = { name: string; email: string; role: string; phone: string; avatar: string; accountStatus: string; permissions: string[] };
 
 const emptyBlogDraft: BlogDraft = { title: "", category: "Design Tips", excerpt: "", content: "", image: "" };
 const emptyCategoryDraft: CategoryDraft = { name: "", image: "", description: "" };
@@ -197,6 +198,10 @@ export default function AdminDashboard() {
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(emptyCategoryDraft);
   const [videoDraft, setVideoDraft] = useState<VideoDraft>(emptyVideoDraft);
   const [testimonialDraft, setTestimonialDraft] = useState<TestimonialDraft>(emptyTestimonialDraft);
+  const [profileDraft, setProfileDraft] = useState<ProfileDraft | null>(null);
+  const [settingsDraft, setSettingsDraft] = useState<any>(null);
+  const [pagesDraft, setPagesDraft] = useState<any>(null);
+  const [serviceDrafts, setServiceDrafts] = useState<Record<string, any>>({});
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const galleryUploadRef = useRef<HTMLInputElement>(null);
@@ -248,8 +253,44 @@ export default function AdminDashboard() {
     const file = event.target.files?.[0];
     if (!file) return;
     onDone(await fileToDataUrl(file));
-    event.target.value = "";
+    (event.target as HTMLInputElement).value = "";
   };
+
+  useEffect(() => {
+    if (user && !profileDraft) {
+      setProfileDraft({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        avatar: user.avatar,
+        accountStatus: user.accountStatus,
+        permissions: user.permissions
+      });
+    }
+  }, [user, profileDraft]);
+
+  useEffect(() => {
+    if (settings && !settingsDraft) {
+      setSettingsDraft({ ...settings });
+    }
+  }, [settings, settingsDraft]);
+
+  useEffect(() => {
+    if (pages && !pagesDraft) {
+      setPagesDraft({ ...pages });
+    }
+  }, [pages, pagesDraft]);
+
+  useEffect(() => {
+    if (services.length > 0 && Object.keys(serviceDrafts).length === 0) {
+      const drafts: Record<string, any> = {};
+      services.forEach(s => {
+        drafts[s.key] = { ...s };
+      });
+      setServiceDrafts(drafts);
+    }
+  }, [services, serviceDrafts]);
 
   const saveBlogDraft = () => {
     if (!blogDraft.title.trim() || !blogDraft.content.trim()) return;
@@ -443,26 +484,62 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {currentSection === "profile" && (
+                {currentSection === "profile" && profileDraft && (
                   <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                    <ModuleShell title="Admin Profile" description="Review and update the logged-in admin details stored in localStorage.">
+                    <ModuleShell title="Admin Profile" description="Review and update your administrative profile details.">
                       <div className="space-y-4">
-                        <Input value={user?.name || ""} onChange={(event) => updateProfile({ name: event.target.value })} placeholder="Name" />
-                        <Input value={user?.email || ""} onChange={(event) => updateProfile({ email: event.target.value })} placeholder="Email" />
-                        <Input value={user?.role || ""} onChange={(event) => updateProfile({ role: event.target.value })} placeholder="Role" />
-                        <Input value={user?.phone || ""} onChange={(event) => updateProfile({ phone: event.target.value })} placeholder="Phone number" />
-                        <Input value={user?.avatar || ""} onChange={(event) => updateProfile({ avatar: event.target.value })} placeholder="Profile image URL or base64" />
-                        <Input value={user?.accountStatus || ""} onChange={(event) => updateProfile({ accountStatus: event.target.value })} placeholder="Account status" />
-                        <Textarea
-                          value={user?.permissions.join(", ") || ""}
-                          onChange={(event) => updateProfile({ permissions: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })}
-                          className="min-h-[120px]"
-                          placeholder="Comma-separated permissions"
-                        />
+                        <div className="flex items-center gap-4 mb-2">
+                           {profileDraft.avatar ? (
+                             <img src={profileDraft.avatar} alt="Avatar" className="h-20 w-20 rounded-full object-cover border-2 border-primary" />
+                           ) : (
+                             <div className="h-20 w-20 rounded-full bg-secondary flex items-center justify-center text-2xl font-bold">
+                               {profileDraft.name.charAt(0)}
+                             </div>
+                           )}
+                           <div className="space-y-2">
+                              <Button variant="glass" size="sm" onClick={() => testimonialUploadRef.current?.click()}>
+                                <UploadCloud className="h-4 w-4 mr-2" />
+                                Upload New Avatar
+                              </Button>
+                              <input 
+                                ref={testimonialUploadRef} 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={async (event) => handleSingleUpload(event, (url) => setProfileDraft(prev => prev ? ({ ...prev, avatar: url }) : null))} 
+                              />
+                           </div>
+                        </div>
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Display Name</label>
+                            <Input value={profileDraft.name || ""} onChange={(event) => setProfileDraft({ ...profileDraft, name: event.target.value })} placeholder="Name" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Email Address</label>
+                            <Input value={profileDraft.email || ""} onChange={(event) => setProfileDraft({ ...profileDraft, email: event.target.value })} placeholder="Email" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone Number</label>
+                            <Input value={profileDraft.phone || ""} onChange={(event) => setProfileDraft({ ...profileDraft, phone: event.target.value })} placeholder="Phone number" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Permissions</label>
+                            <Textarea
+                              value={profileDraft.permissions.join(", ") || ""}
+                              onChange={(event) => setProfileDraft({ ...profileDraft, permissions: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })}
+                              className="min-h-[100px]"
+                              placeholder="Comma-separated permissions"
+                            />
+                          </div>
+                        </div>
+                        <Button variant="luxury" className="w-full mt-4" onClick={() => updateProfile(profileDraft)}>
+                          Save Profile Changes
+                        </Button>
                       </div>
                     </ModuleShell>
 
-                    <ModuleShell title="Profile Summary" description="Current admin session details and quick actions.">
+                    <ModuleShell title="Profile Summary" description="Current admin session details and account status.">
                       <Card className="panel-luxury bg-canvas-texture">
                         <CardContent className="space-y-5 p-6">
                           <div className="flex items-center gap-4">
@@ -495,87 +572,231 @@ export default function AdminDashboard() {
                 )}
 
                 {currentSection === "services" && (
-                  <ModuleShell title="Service Content Manager" description="Manage hero titles, subtitles, categories, subcategories, descriptions, image arrays, and visibility for service pages.">
+                  <ModuleShell title="Service Content Manager" description="Update titles, descriptions, and image sets for each service category.">
+                    <div className="mb-6 flex justify-end">
+                      <Button 
+                        variant="luxury" 
+                        onClick={() => {
+                          const newKey = `service-${Date.now()}`;
+                          updateService(newKey as any, {
+                            label: "New Service",
+                            heroTitle: "New Service Title",
+                            heroSubtitle: "New Service Subtitle",
+                            whyChooseUs: [],
+                            isActive: false,
+                            category: "Home",
+                            subcategory: "General",
+                            description: "New service description",
+                            images: [],
+                            benefits: [],
+                            relatedServices: []
+                          });
+                        }}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Service
+                      </Button>
+                    </div>
                     <div className="grid gap-5 xl:grid-cols-2">
-                      {services.map((service) => (
-                        <Card key={service.key} className={`panel-luxury ${service.isActive ? "panel-active" : ""}`}>
-                          <CardContent className="space-y-5 p-6">
-                            <div className="flex items-center justify-between gap-4">
-                              <div>
-                                <p className="text-2xl font-semibold tracking-tight">{service.label}</p>
-                                <p className="text-sm text-muted-foreground">Maps directly to /{service.key === "home" ? "" : service.key}</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm text-muted-foreground">Live</span>
-                                <Switch checked={service.isActive} onCheckedChange={(checked) => updateService(service.key, { isActive: checked })} />
-                              </div>
-                            </div>
-
-                            <div className="grid gap-4">
-                              <Input value={service.heroTitle} onChange={(event) => updateService(service.key, { heroTitle: event.target.value })} placeholder="Hero title" />
-                              <Textarea value={service.heroSubtitle} onChange={(event) => updateService(service.key, { heroSubtitle: event.target.value })} placeholder="Hero subtitle" />
-                              <Textarea value={service.description} onChange={(event) => updateService(service.key, { description: event.target.value })} placeholder="Service description" />
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <Select value={service.category} onValueChange={(value: "Home" | "Commercial") => updateService(service.key, { category: value })}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Category" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Home">Home</SelectItem>
-                                    <SelectItem value="Commercial">Commercial</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Input value={service.subcategory} onChange={(event) => updateService(service.key, { subcategory: event.target.value })} placeholder="Subcategory" />
+                      {services.map((service) => {
+                        const draft = serviceDrafts[service.key] || service;
+                        return (
+                          <Card key={service.key} className={`panel-luxury ${service.isActive ? "panel-active" : ""}`}>
+                            <CardContent className="space-y-5 p-6">
+                              <div className="flex items-center justify-between gap-4">
+                                <div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Service Label</label>
+                                    <Input value={draft.label || ""} onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, label: event.target.value } })} className="text-2xl font-semibold tracking-tight h-auto py-1" />
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">URL Path: /{service.key === "home" ? "" : service.key}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm text-muted-foreground">Live</span>
+                                  <Switch checked={draft.isActive} onCheckedChange={(checked) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, isActive: checked } })} />
+                                </div>
                               </div>
 
-                              <div className="space-y-3 rounded-2xl border border-border/70 bg-canvas-texture p-4">
-                                <div className="flex items-center justify-between gap-3">
-                                  <p className="text-sm font-medium uppercase tracking-[0.22em] text-primary">Service images</p>
-                                  <Button variant="glass" size="sm" onClick={() => serviceUploadRefs.current[service.key]?.click()}>
-                                    <UploadCloud className="h-4 w-4" />
-                                    Upload
-                                  </Button>
-                                  <input
-                                    ref={(node) => {
-                                      serviceUploadRefs.current[service.key] = node;
-                                    }}
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={async (event) => handleSingleUpload(event, (value) => updateService(service.key, { images: [...service.images, value] }))}
+                              <div className="grid gap-4">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Title</label>
+                                  <Input value={draft.heroTitle || ""} onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, heroTitle: event.target.value } })} placeholder="Hero title" />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Subtitle</label>
+                                  <Textarea value={draft.heroSubtitle || ""} onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, heroSubtitle: event.target.value } })} placeholder="Hero subtitle" />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Detailed Description</label>
+                                  <Textarea value={draft.description || ""} onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, description: event.target.value } })} placeholder="Service description" />
+                                </div>
+                                
+                                <div className="grid gap-4 md:grid-cols-2">
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category</label>
+                                    <Select value={draft.category} onValueChange={(value: "Home" | "Commercial") => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, category: value } })}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Category" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Home">Home</SelectItem>
+                                        <SelectItem value="Commercial">Commercial</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Subcategory</label>
+                                    <Input value={draft.subcategory || ""} onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, subcategory: event.target.value } })} placeholder="Subcategory" />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3 rounded-2xl border border-border/70 bg-canvas-texture p-4">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Service images</p>
+                                    <Button variant="glass" size="sm" onClick={() => serviceUploadRefs.current[service.key]?.click()}>
+                                      <UploadCloud className="h-4 w-4 mr-2" />
+                                      Upload
+                                    </Button>
+                                    <input
+                                      ref={(node) => {
+                                        serviceUploadRefs.current[service.key] = node;
+                                      }}
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={async (event) => handleSingleUpload(event, (value) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, images: [...(draft.images || []), value] } }))}
+                                    />
+                                  </div>
+                                  <Textarea
+                                    value={(draft.images || []).join("\n")}
+                                    onChange={(event) => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, images: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) } })}
+                                    className="min-h-[100px]"
+                                    placeholder="One image URL or base64 string per line"
                                   />
                                 </div>
-                                <Textarea
-                                  value={service.images.join("\n")}
-                                  onChange={(event) => updateService(service.key, { images: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) })}
-                                  className="min-h-[100px]"
-                                  placeholder="One image URL or base64 string per line"
-                                />
                               </div>
-                            </div>
 
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium uppercase tracking-[0.22em] text-primary">Why choose us</p>
-                                <Button variant="glass" size="sm" onClick={() => addWhyPoint(service.key)}>
-                                  <Plus className="h-4 w-4" />
-                                  Add point
-                                </Button>
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Why choose us</p>
+                                  <Button variant="glass" size="sm" onClick={() => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, whyChooseUs: [...(draft.whyChooseUs || []), "New point..."] } })}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add point
+                                  </Button>
+                                </div>
+                                <div className="space-y-3">
+                                  {(draft.whyChooseUs || []).map((point: string, index: number) => (
+                                    <div key={`${service.key}-${index}`} className="flex items-start gap-3">
+                                      <Textarea 
+                                        value={point || ""} 
+                                        onChange={(event) => {
+                                          const newPoints = [...draft.whyChooseUs];
+                                          newPoints[index] = event.target.value;
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, whyChooseUs: newPoints } });
+                                        }} 
+                                        className="min-h-[84px]" 
+                                      />
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => {
+                                          const newPoints = draft.whyChooseUs.filter((_: any, i: number) => i !== index);
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, whyChooseUs: newPoints } });
+                                        }} 
+                                        aria-label="Remove point"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                               <div className="space-y-3">
-                                {service.whyChooseUs.map((point, index) => (
-                                  <div key={`${service.key}-${index}`} className="flex items-start gap-3">
-                                    <Textarea value={point} onChange={(event) => updateWhyPoint(service.key, index, event.target.value)} className="min-h-[84px]" />
-                                    <Button variant="ghost" size="icon" onClick={() => removeWhyPoint(service.key, index)} aria-label="Remove point">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Benefits</p>
+                                  <Button variant="glass" size="sm" onClick={() => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, benefits: [...(draft.benefits || []), "New benefit..."] } })}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add benefit
+                                  </Button>
+                                </div>
+                                <div className="space-y-3">
+                                  {(draft.benefits || []).map((point: string, index: number) => (
+                                    <div key={`${service.key}-benefit-${index}`} className="flex items-start gap-3">
+                                      <Textarea 
+                                        value={point || ""} 
+                                        onChange={(event) => {
+                                          const newPoints = [...(draft.benefits || [])];
+                                          newPoints[index] = event.target.value;
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, benefits: newPoints } });
+                                        }} 
+                                        className="min-h-[60px]" 
+                                      />
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => {
+                                          const newPoints = (draft.benefits || []).filter((_: any, i: number) => i !== index);
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, benefits: newPoints } });
+                                        }} 
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary">Related Services</p>
+                                  <Button variant="glass" size="sm" onClick={() => setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, relatedServices: [...(draft.relatedServices || []), { label: "New Service", to: "/" }] } })}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add link
+                                  </Button>
+                                </div>
+                                <div className="space-y-3">
+                                  {(draft.relatedServices || []).map((rel: any, index: number) => (
+                                    <div key={`${service.key}-rel-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-3 p-3 rounded-xl border border-border/50 bg-secondary/30">
+                                      <Input 
+                                        value={rel.label || ""} 
+                                        placeholder="Label"
+                                        onChange={(event) => {
+                                          const newRel = [...(draft.relatedServices || [])];
+                                          newRel[index] = { ...rel, label: event.target.value };
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, relatedServices: newRel } });
+                                        }}
+                                      />
+                                      <Input 
+                                        value={rel.to || ""} 
+                                        placeholder="/path"
+                                        onChange={(event) => {
+                                          const newRel = [...(draft.relatedServices || [])];
+                                          newRel[index] = { ...rel, to: event.target.value };
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, relatedServices: newRel } });
+                                        }}
+                                      />
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => {
+                                          const newRel = (draft.relatedServices || []).filter((_: any, i: number) => i !== index);
+                                          setServiceDrafts({ ...serviceDrafts, [service.key]: { ...draft, relatedServices: newRel } });
+                                        }} 
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <Button variant="luxury" className="w-full mt-4" onClick={() => updateService(service.key, draft)}>
+                                Update {service.label} Service
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   </ModuleShell>
                 )}
@@ -596,7 +817,7 @@ export default function AdminDashboard() {
                             List
                           </Button>
                         </div>
-                        <Input value={blogDraft.title} onChange={(event) => setBlogDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Blog title" />
+                        <Input value={blogDraft.title || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Blog title" />
                         <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Slug: {slugify(blogDraft.title || "untitled-post")}</p>
                         <div className="grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
                           <Select value={blogDraft.category} onValueChange={(value: BlogCategory) => setBlogDraft((draft) => ({ ...draft, category: value }))}>
@@ -609,17 +830,18 @@ export default function AdminDashboard() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <Input value={blogDraft.excerpt} onChange={(event) => setBlogDraft((draft) => ({ ...draft, excerpt: event.target.value }))} placeholder="Short excerpt" />
+                          <Input value={blogDraft.category || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, category: event.target.value }))} placeholder="Category" />
                         </div>
+                        <Textarea value={blogDraft.excerpt || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, excerpt: event.target.value }))} placeholder="Short excerpt" />
                         <div className="flex gap-3">
-                          <Input value={blogDraft.image} onChange={(event) => setBlogDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image URL or base64" />
+                          <Input value={blogDraft.image || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Main image URL or base64" />
                           <Button variant="glass" onClick={() => blogUploadRef.current?.click()}>
                             <UploadCloud className="h-4 w-4" />
                             Upload
                           </Button>
                           <input ref={blogUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setBlogDraft((draft) => ({ ...draft, image: value })))} />
                         </div>
-                        <Textarea value={blogDraft.content} onChange={(event) => setBlogDraft((draft) => ({ ...draft, content: event.target.value }))} className="min-h-[280px]" placeholder="Use the toolbar above to simulate formatted content." />
+                        <Textarea value={blogDraft.content || ""} onChange={(event) => setBlogDraft((draft) => ({ ...draft, content: event.target.value }))} className="min-h-[400px]" placeholder="Blog content (Markdown supported)" />
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setBlogDraft(emptyBlogDraft)}>Clear</Button>
                           <Button variant="luxury" onClick={saveBlogDraft}>{blogDraft.id ? "Update post" : "Publish post"}</Button>
@@ -681,16 +903,16 @@ export default function AdminDashboard() {
                   <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                     <ModuleShell title="Wallpaper Categories" description="Add, edit, and remove wallpaper categories without changing the existing public filter layout.">
                       <div className="space-y-4">
-                        <Input value={categoryDraft.name} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Category name" />
+                        <Input value={categoryDraft.name || ""} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Category name" />
                         <div className="flex gap-3">
-                          <Input value={categoryDraft.image} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image URL or base64" />
+                          <Input value={categoryDraft.image || ""} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image URL or base64" />
                           <Button variant="glass" onClick={() => categoryUploadRef.current?.click()}>
                             <UploadCloud className="h-4 w-4" />
                             Upload
                           </Button>
                           <input ref={categoryUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setCategoryDraft((draft) => ({ ...draft, image: value })))} />
                         </div>
-                        <Textarea value={categoryDraft.description} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, description: event.target.value }))} className="min-h-[180px]" placeholder="Description" />
+                        <Textarea value={categoryDraft.description || ""} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, description: event.target.value }))} className="min-h-[180px]" placeholder="Description" />
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setCategoryDraft(emptyCategoryDraft)}>Clear</Button>
                           <Button variant="luxury" onClick={saveCategoryDraft}>{categoryDraft.id ? "Update category" : "Add category"}</Button>
@@ -734,16 +956,16 @@ export default function AdminDashboard() {
                   <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                     <ModuleShell title="Videos" description="Manage video cards that appear on the home page using the existing UI language.">
                       <div className="space-y-4">
-                        <Input value={videoDraft.title} onChange={(event) => setVideoDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Video title" />
+                        <Input value={videoDraft.title || ""} onChange={(event) => setVideoDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Video title" />
                         <div className="flex gap-3">
-                          <Input value={videoDraft.thumbnail} onChange={(event) => setVideoDraft((draft) => ({ ...draft, thumbnail: event.target.value }))} placeholder="Thumbnail URL or base64" />
+                          <Input value={videoDraft.thumbnail || ""} onChange={(event) => setVideoDraft((draft) => ({ ...draft, thumbnail: event.target.value }))} placeholder="Thumbnail URL or base64" />
                           <Button variant="glass" onClick={() => videoUploadRef.current?.click()}>
                             <UploadCloud className="h-4 w-4" />
                             Upload
                           </Button>
                           <input ref={videoUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setVideoDraft((draft) => ({ ...draft, thumbnail: value })))} />
                         </div>
-                        <Input value={videoDraft.videoUrl} onChange={(event) => setVideoDraft((draft) => ({ ...draft, videoUrl: event.target.value }))} placeholder="YouTube or file URL" />
+                        <Input value={videoDraft.videoUrl || ""} onChange={(event) => setVideoDraft((draft) => ({ ...draft, videoUrl: event.target.value }))} placeholder="YouTube or file URL" />
                         <Select value={videoDraft.category} onValueChange={(value: VideoCategory) => setVideoDraft((draft) => ({ ...draft, category: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Category" />
@@ -799,49 +1021,85 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {currentSection === "services" ? null : null}
-
-                {currentSection === "pages" && (
+                {currentSection === "pages" && pagesDraft && (
                   <div className="grid gap-6 xl:grid-cols-3">
-                    <ModuleShell title="Home page" description="Control the home hero title, hero images, category feed, and video feed.">
+                    <ModuleShell title="Home page" description="Control the home hero title, hero images, and section visibility.">
                       <div className="space-y-4">
-                        <Input value={pages.home.heroTitle} onChange={(event) => updateHomePage({ heroTitle: event.target.value })} placeholder="Hero title" />
-                        <div className="flex gap-3">
-                          <Button variant="glass" onClick={() => homeUploadRef.current?.click()}>
-                            <UploadCloud className="h-4 w-4" />
-                            Upload image
-                          </Button>
-                          <input ref={homeUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => updateHomePage({ heroImages: [...pages.home.heroImages, value] }))} />
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Title</label>
+                          <Input value={pagesDraft.home.heroTitle || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroTitle: event.target.value } })} placeholder="Hero title" />
                         </div>
-                        <Textarea value={pages.home.heroImages.join("\n")} onChange={(event) => updateHomePage({ heroImages: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) })} className="min-h-[160px]" placeholder="One image URL or base64 string per line" />
-                        <div className="rounded-2xl border border-border/70 bg-canvas-texture p-4 text-sm text-muted-foreground">Categories section is bound to the Categories module. Videos section is bound to the Videos module.</div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Images</label>
+                             <Button variant="glass" size="sm" onClick={() => homeUploadRef.current?.click()}>
+                               <UploadCloud className="h-4 w-4 mr-2" />
+                               Upload
+                             </Button>
+                             <input ref={homeUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroImages: [...(pagesDraft.home.heroImages || []), value] } }))} />
+                          </div>
+                          <Textarea value={(pagesDraft.home.heroImages || []).join("\n")} onChange={(event) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroImages: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) } })} className="min-h-[160px]" placeholder="One image URL or base64 string per line" />
+                        </div>
+                        <Button variant="luxury" className="w-full" onClick={() => updateHomePage(pagesDraft.home)}>Save Home Page</Button>
                       </div>
                     </ModuleShell>
 
-                    <ModuleShell title="About page" description="Edit the about narrative and founder profile without changing the public layout.">
+                    <ModuleShell title="About page" description="Edit the about narrative and founder profile.">
                       <div className="space-y-4">
-                        <Input value={pages.about.title} onChange={(event) => updateAboutPage({ title: event.target.value })} placeholder="About page title" />
-                        <Textarea value={pages.about.content} onChange={(event) => updateAboutPage({ content: event.target.value })} className="min-h-[180px]" placeholder="Rich text content" />
-                        <Input value={pages.about.founderName} onChange={(event) => updateAboutPage({ founderName: event.target.value })} placeholder="Founder name" />
-                        <div className="flex gap-3">
-                          <Input value={pages.about.founderImage} onChange={(event) => updateAboutPage({ founderImage: event.target.value })} placeholder="Founder image URL or base64" />
-                          <Button variant="glass" onClick={() => aboutUploadRef.current?.click()}>
-                            <UploadCloud className="h-4 w-4" />
-                            Upload
-                          </Button>
-                          <input ref={aboutUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => updateAboutPage({ founderImage: value }))} />
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Page Title</label>
+                          <Input value={pagesDraft.about.title || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, title: event.target.value } })} placeholder="About page title" />
                         </div>
-                        <Textarea value={pages.about.founderDescription} onChange={(event) => updateAboutPage({ founderDescription: event.target.value })} className="min-h-[120px]" placeholder="Founder description" />
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Main Content</label>
+                          <Textarea value={pagesDraft.about.content || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, content: event.target.value } })} className="min-h-[180px]" placeholder="Rich text content" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Founder Name</label>
+                          <Input value={pagesDraft.about.founderName || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderName: event.target.value } })} placeholder="Founder name" />
+                        </div>
+                        <div className="space-y-3">
+                           <div className="flex items-center justify-between">
+                              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Founder Image</label>
+                              <Button variant="glass" size="sm" onClick={() => aboutUploadRef.current?.click()}>
+                                <UploadCloud className="h-4 w-4 mr-2" />
+                                Upload
+                              </Button>
+                              <input ref={aboutUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderImage: value } }))} />
+                           </div>
+                           <Input value={pagesDraft.about.founderImage || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderImage: event.target.value } })} placeholder="Founder image URL" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Founder Description</label>
+                          <Textarea value={pagesDraft.about.founderDescription || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderDescription: event.target.value } })} className="min-h-[120px]" placeholder="Founder description" />
+                        </div>
+                        <Button variant="luxury" className="w-full" onClick={() => updateAboutPage(pagesDraft.about)}>Save About Page</Button>
                       </div>
                     </ModuleShell>
 
-                    <ModuleShell title="Contact page" description="Keep public contact details editable from one place.">
+                    <ModuleShell title="Contact page" description="Manage public contact details and map integration.">
                       <div className="space-y-4">
-                        <Input value={pages.contact.phone} onChange={(event) => updateContactPage({ phone: event.target.value })} placeholder="Phone" />
-                        <Input value={pages.contact.email} onChange={(event) => updateContactPage({ email: event.target.value })} placeholder="Email" />
-                        <Textarea value={pages.contact.address} onChange={(event) => updateContactPage({ address: event.target.value })} className="min-h-[100px]" placeholder="Address" />
-                        <Input value={pages.contact.whatsapp} onChange={(event) => updateContactPage({ whatsapp: event.target.value })} placeholder="WhatsApp" />
-                        <Textarea value={pages.contact.mapEmbed} onChange={(event) => updateContactPage({ mapEmbed: event.target.value })} className="min-h-[120px]" placeholder="Map embed URL" />
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Phone Number</label>
+                          <Input value={pagesDraft.contact.phone || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, phone: event.target.value } })} placeholder="Phone" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Email Address</label>
+                          <Input value={pagesDraft.contact.email || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, email: event.target.value } })} placeholder="Email" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Office Address</label>
+                          <Textarea value={pagesDraft.contact.address || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, address: event.target.value } })} className="min-h-[100px]" placeholder="Address" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">WhatsApp Link</label>
+                          <Input value={pagesDraft.contact.whatsapp || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, whatsapp: event.target.value } })} placeholder="WhatsApp Link" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Map Embed URL</label>
+                          <Textarea value={pagesDraft.contact.mapEmbed || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, mapEmbed: event.target.value } })} className="min-h-[120px]" placeholder="Map embed URL" />
+                        </div>
+                        <Button variant="luxury" className="w-full" onClick={() => updateContactPage(pagesDraft.contact)}>Save Contact Page</Button>
                       </div>
                     </ModuleShell>
                   </div>
@@ -851,21 +1109,21 @@ export default function AdminDashboard() {
                   <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                     <ModuleShell title="Testimonials" description="Manage testimonial cards with stars, quote, and avatar or initials.">
                       <div className="space-y-4">
-                        <Input value={testimonialDraft.name} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Client name" />
+                        <Input value={testimonialDraft.name || ""} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Client name" />
                         <div className="space-y-3">
                           <p className="text-sm font-medium uppercase tracking-[0.22em] text-primary">Rating</p>
                           <Slider value={[testimonialDraft.rating]} min={1} max={5} step={1} onValueChange={(value) => setTestimonialDraft((draft) => ({ ...draft, rating: value[0] ?? 5 }))} />
                           <div className="flex items-center gap-1">{Array.from({ length: 5 }).map((_, index) => <Star key={index} className={`h-4 w-4 ${index < testimonialDraft.rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />)}</div>
                         </div>
                         <div className="flex gap-3">
-                          <Input value={testimonialDraft.image} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Avatar URL or base64" />
+                          <Input value={testimonialDraft.image || ""} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Avatar URL or base64" />
                           <Button variant="glass" onClick={() => testimonialUploadRef.current?.click()}>
                             <UploadCloud className="h-4 w-4" />
                             Upload
                           </Button>
                           <input ref={testimonialUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setTestimonialDraft((draft) => ({ ...draft, image: value })))} />
                         </div>
-                        <Textarea value={testimonialDraft.message} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, message: event.target.value }))} className="min-h-[180px]" placeholder="Testimonial message" />
+                        <Textarea value={testimonialDraft.message || ""} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, message: event.target.value }))} className="min-h-[180px]" placeholder="Testimonial message" />
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setTestimonialDraft(emptyTestimonialDraft)}>Clear</Button>
                           <Button variant="luxury" onClick={saveTestimonialDraft}>{testimonialDraft.id ? "Update testimonial" : "Add testimonial"}</Button>
@@ -936,7 +1194,7 @@ export default function AdminDashboard() {
                                     </div>
                                   </TableCell>
                                   <TableCell>
-                                    <Input value={lead.source} onChange={(event) => updateLead(lead.id, { source: event.target.value })} />
+                                    <Input value={lead.source || ""} onChange={(event) => updateLead(lead.id, { source: event.target.value })} />
                                   </TableCell>
                                   <TableCell>
                                     <Select value={lead.locationTag || lead.suggestedLocation} onValueChange={(value) => updateLead(lead.id, { locationTag: value })}>
@@ -1002,44 +1260,68 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {currentSection === "settings" && (
-                  <ModuleShell title="Site Identity" description="Update site-wide branding, social links, and footer copy from one global settings module.">
+                {currentSection === "settings" && settingsDraft && (
+                  <ModuleShell title="Site Identity" description="Update global branding, social connections, and legal footers.">
                     <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                       <div className="space-y-4">
-                        <Input value={settings.siteName} onChange={(event) => updateSettings({ siteName: event.target.value })} placeholder="Site name" />
-                        <div className="flex gap-3">
-                          <Input value={settings.logo} onChange={(event) => updateSettings({ logo: event.target.value })} placeholder="Logo URL or base64" />
-                          <Button variant="glass" onClick={() => settingsLogoUploadRef.current?.click()}>
-                            <UploadCloud className="h-4 w-4" />
-                            Upload
-                          </Button>
-                          <input ref={settingsLogoUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => updateSettings({ logo: value }))} />
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Site Name</label>
+                           <Input value={settingsDraft.siteName || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, siteName: event.target.value })} placeholder="Site name" />
                         </div>
-                        <Input value={settings.social.whatsapp} onChange={(event) => updateSettings({ social: { ...settings.social, whatsapp: event.target.value }, whatsappNumber: event.target.value })} placeholder="WhatsApp" />
-                        <Input value={settings.social.instagram} onChange={(event) => updateSettings({ social: { ...settings.social, instagram: event.target.value }, instagramUrl: event.target.value })} placeholder="Instagram" />
-                        <Input value={settings.social.youtube} onChange={(event) => updateSettings({ social: { ...settings.social, youtube: event.target.value } })} placeholder="YouTube" />
-                        <Textarea value={settings.footer} onChange={(event) => updateSettings({ footer: event.target.value })} className="min-h-[120px]" placeholder="Footer copy" />
-                        <Textarea value={settings.officeAddress} onChange={(event) => updateSettings({ officeAddress: event.target.value })} className="min-h-[120px]" placeholder="Office address in Hyderabad" />
+                        <div className="space-y-3">
+                           <div className="flex items-center justify-between">
+                              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Site Logo</label>
+                              <Button variant="glass" size="sm" onClick={() => settingsLogoUploadRef.current?.click()}>
+                                <UploadCloud className="h-4 w-4 mr-2" />
+                                Upload
+                              </Button>
+                              <input ref={settingsLogoUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setSettingsDraft({ ...settingsDraft, logo: value }))} />
+                           </div>
+                           <Input value={settingsDraft.logo || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, logo: event.target.value })} placeholder="Logo URL" />
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                           <div className="space-y-2">
+                              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">WhatsApp Number</label>
+                              <Input value={settingsDraft.social.whatsapp || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, social: { ...settingsDraft.social, whatsapp: event.target.value }, whatsappNumber: event.target.value })} placeholder="WhatsApp" />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Instagram URL</label>
+                              <Input value={settingsDraft.social.instagram || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, social: { ...settingsDraft.social, instagram: event.target.value }, instagramUrl: event.target.value })} placeholder="Instagram" />
+                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">YouTube Channel</label>
+                           <Input value={settingsDraft.social.youtube || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, social: { ...settingsDraft.social, youtube: event.target.value } })} placeholder="YouTube" />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Footer Copy</label>
+                           <Textarea value={settingsDraft.footer || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, footer: event.target.value })} className="min-h-[100px]" placeholder="Footer copy" />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Office Address</label>
+                           <Textarea value={settingsDraft.officeAddress || ""} onChange={(event) => setSettingsDraft({ ...settingsDraft, officeAddress: event.target.value })} className="min-h-[100px]" placeholder="Office address in Hyderabad" />
+                        </div>
+                        <Button variant="luxury" className="w-full mt-2" onClick={() => updateSettings(settingsDraft)}>Save Global Settings</Button>
                       </div>
                       <Card className="panel-luxury bg-canvas-texture">
                         <CardContent className="space-y-5 p-6">
                           <div>
                             <p className="text-sm uppercase tracking-[0.22em] text-primary">Live site preview</p>
-                            <h3 className="mt-2 text-2xl font-semibold tracking-tight">CTA identity block</h3>
+                            <h3 className="mt-2 text-2xl font-semibold tracking-tight">Branding & Socials</h3>
                           </div>
                           <div className="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-5">
                             <div className="flex items-center gap-3">
-                              <img src={settings.logo || "/hwa-wall-bg.jpg"} alt={settings.siteName} className="h-12 w-12 rounded-2xl object-cover" />
+                              <img src={settingsDraft.logo || "/hwa-wall-bg.jpg"} alt={settingsDraft.siteName} className="h-12 w-12 rounded-2xl object-cover" />
                               <div>
-                                <p className="font-semibold tracking-tight">{settings.siteName}</p>
-                                <p className="text-sm text-muted-foreground">{settings.footer}</p>
+                                <p className="font-semibold tracking-tight">{settingsDraft.siteName}</p>
+                                <p className="text-sm text-muted-foreground">{settingsDraft.footer}</p>
                               </div>
                             </div>
                             <div className="space-y-2 text-sm text-muted-foreground">
-                              <p>WhatsApp: {settings.social.whatsapp}</p>
-                              <p>Instagram: {settings.social.instagram}</p>
-                              <p>YouTube: {settings.social.youtube || "Not set"}</p>
-                              <p>Address: {settings.officeAddress}</p>
+                              <p>WhatsApp: {settingsDraft.social.whatsapp}</p>
+                              <p>Instagram: {settingsDraft.social.instagram}</p>
+                              <p>YouTube: {settingsDraft.social.youtube || "Not set"}</p>
+                              <p>Address: {settingsDraft.officeAddress}</p>
                             </div>
                           </div>
                         </CardContent>

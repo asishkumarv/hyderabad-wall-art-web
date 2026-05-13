@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
+import { useStore, type ServiceKey } from "@/lib/store";
 
 interface ServicePageLayoutProps {
+  serviceKey?: ServiceKey;
   title: string;
   subtitle: string;
   description: string;
@@ -12,7 +14,20 @@ interface ServicePageLayoutProps {
   relatedServices?: { label: string; to: string }[];
 }
 
-export default function ServicePageLayout({ title, subtitle, description, image, benefits, whyChoose, relatedServices }: ServicePageLayoutProps) {
+export default function ServicePageLayout({ serviceKey, ...props }: ServicePageLayoutProps) {
+  const { services } = useStore();
+  
+  // Try to find dynamic content from the store
+  const dynamicService = serviceKey ? services.find(s => s.key === serviceKey) : null;
+
+  // Use dynamic content if available, otherwise fallback to props
+  const title = dynamicService?.heroTitle || props.title;
+  const subtitle = dynamicService?.label || props.subtitle;
+  const description = dynamicService?.description || props.description;
+  const image = dynamicService?.images?.[0] || props.image;
+  const benefits = (dynamicService?.benefits && dynamicService.benefits.length > 0) ? dynamicService.benefits : props.benefits;
+  const whyChoose = (dynamicService?.whyChooseUs && dynamicService.whyChooseUs.length > 0) ? dynamicService.whyChooseUs : props.whyChoose;
+  const relatedServices = (dynamicService?.relatedServices && dynamicService.relatedServices.length > 0) ? dynamicService.relatedServices : props.relatedServices;
   return (
     <div>
       {/* Hero */}
@@ -50,18 +65,33 @@ export default function ServicePageLayout({ title, subtitle, description, image,
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading subtitle="Our Work" title="Project Gallery" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg"
-              >
-                <img src={image} alt={`${title} project ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-              </motion.div>
-            ))}
+            {(dynamicService?.images && dynamicService.images.length > 0) ? (
+              dynamicService.images.map((img, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg"
+                >
+                  <img src={img} alt={`${title} project ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+                </motion.div>
+              ))
+            ) : (
+              [1, 2, 3].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg"
+                >
+                  <img src={image} alt={`${title} project ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>

@@ -11,6 +11,7 @@ export const Route = createFileRoute("/wall-art-services/stencil-wall-painting")
   }),
   component: () => (
     <ServicePageLayout
+      serviceKey="stencil"
       title="Stencil Wall Painting"
       subtitle="Wall Art Services"
       description="Beautiful repetitive pattern designs using professional stencil techniques. Budget-friendly yet stylish, our stencil paintings add texture and character to any wall with precision and elegance."

@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
+import { useStore } from "@/lib/store";
+
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
 import heroSlide3 from "@/assets/hero-slide-3.jpg";
@@ -27,61 +29,75 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const heroSlides = [
-  { image: heroSlide1, heading: "Transform Your Walls\nInto Masterpieces", sub: "Premium wall art for homes, hotels & commercial spaces" },
-  { image: heroSlide2, heading: "Luxury Wall Art\nFor Every Space", sub: "Hotels, restaurants & office interiors transformed" },
-  { image: heroSlide3, heading: "Artistic Excellence\nSince 2000", sub: "20+ years of creating stunning wall art across Hyderabad" },
-];
-
-const services = [
-  { title: "Living Room", desc: "Premium abstract & modern art", image: livingRoomImg, to: "/wall-art-services/home/living-room" },
-  { title: "Kids Room", desc: "Fun cartoon themes", image: kidsRoomImg, to: "/wall-art-services/home/kids-room" },
-  { title: "3D Painting", desc: "Depth illusion art", image: threeDImg, to: "/wall-art-services/home/3d-painting" },
-  { title: "Hotels & Restaurants", desc: "Themed ambience murals", image: hotelImg, to: "/wall-art-services/commercial/hotels-restaurants" },
-  { title: "Shops & Offices", desc: "Modern branding art", image: officeImg, to: "/wall-art-services/commercial/shops-offices" },
-  { title: "Staircase Wall", desc: "Vertical storytelling art", image: staircaseImg, to: "/wall-art-services/home/staircase" },
-  { title: "School Cartoon", desc: "Educational murals", image: schoolImg, to: "/wall-art-services/commercial/school-cartoon" },
-  { title: "Master Bedroom", desc: "Calm elegant designs", image: bedroomImg, to: "/wall-art-services/home/master-bedroom" },
-];
-
-const whyChooseUs = [
-  { icon: "🏆", title: "20+ Years Experience", desc: "Two decades of transforming spaces across Hyderabad" },
-  { icon: "👨‍🎨", title: "Expert Artists", desc: "Team of skilled and experienced professional painters" },
-  { icon: "✨", title: "Custom Designs", desc: "Tailored artwork to match your vision and space" },
-  { icon: "💰", title: "Affordable Pricing", desc: "Premium quality at competitive market rates" },
-  { icon: "⏰", title: "On-Time Delivery", desc: "We ensure timely completion of every project" },
-  { icon: "🤝", title: "Free Consultation", desc: "Complimentary design consultation for new clients" },
-];
-
-const reviews = [
-  { name: "Rajesh Kumar", text: "Absolutely stunning work on our living room wall! The team was professional and delivered beyond expectations.", rating: 5, avatar: "RK" },
-  { name: "Priya Sharma", text: "Got a beautiful 3D painting done for our hotel lobby. Guests always compliment it. Highly recommended!", rating: 5, avatar: "PS" },
-  { name: "Anil Reddy", text: "The kids room painting was magical. My children love their new cartoon-themed room!", rating: 5, avatar: "AR" },
-  { name: "Sunitha Devi", text: "Excellent mural work for our restaurant. The art perfectly captures our brand's essence.", rating: 5, avatar: "SD" },
-  { name: "Karthik Rao", text: "Professional team, great communication, and outstanding quality. Will definitely work with them again.", rating: 5, avatar: "KR" },
-];
-
-const offerImages = [livingRoomImg, hotelImg, muralImg, threeDImg];
-
 function Index() {
+  const { services: apiServices, testimonials: apiTestimonials, pages, isLoading } = useStore();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentReview, setCurrentReview] = useState(0);
   const [currentOfferImg, setCurrentOfferImg] = useState(0);
 
+  // Fallbacks if DB is empty
+  const heroSlides = pages.home.heroImages.length > 0 
+    ? pages.home.heroImages.map(img => ({ image: img, heading: pages.home.heroTitle || "Artistic Excellence\nSince 2000", sub: "Transforming spaces across Hyderabad" }))
+    : [
+        { image: heroSlide1, heading: "Transform Your Walls\nInto Masterpieces", sub: "Premium wall art for homes, hotels & commercial spaces" },
+        { image: heroSlide2, heading: "Luxury Wall Art\nFor Every Space", sub: "Hotels, restaurants & office interiors transformed" },
+        { image: heroSlide3, heading: "Artistic Excellence\nSince 2000", sub: "20+ years of creating stunning wall art across Hyderabad" },
+      ];
+
+  const displayServices = apiServices.length > 0 
+    ? apiServices.filter(s => s.isActive).map(s => {
+        let to = `/wall-art-services/${s.key}`;
+        if (s.key === "home") to = "/wall-art-services/home/living-room";
+        if (s.key === "commercial") to = "/wall-art-services/commercial/hotels-restaurants";
+        if (s.key === "mural") to = "/wall-art-services/mural-paintings";
+        if (s.key === "stencil") to = "/wall-art-services/stencil-wall-painting";
+        
+        return {
+          title: s.label,
+          desc: s.heroSubtitle,
+          image: s.images[0] || livingRoomImg,
+          to: to
+        };
+      })
+    : [
+        { title: "Living Room", desc: "Premium abstract & modern art", image: livingRoomImg, to: "/wall-art-services/home/living-room" },
+        { title: "Kids Room", desc: "Fun cartoon themes", image: kidsRoomImg, to: "/wall-art-services/home/kids-room" },
+        { title: "3D Painting", desc: "Depth illusion art", image: threeDImg, to: "/wall-art-services/home/3d-painting" },
+        { title: "Hotels & Restaurants", desc: "Themed ambience murals", image: hotelImg, to: "/wall-art-services/commercial/hotels-restaurants" },
+        { title: "Shops & Offices", desc: "Modern branding art", image: officeImg, to: "/wall-art-services/commercial/shops-offices" },
+        { title: "Staircase Wall", desc: "Vertical storytelling art", image: staircaseImg, to: "/wall-art-services/home/staircase" },
+        { title: "School Cartoon", desc: "Educational murals", image: schoolImg, to: "/wall-art-services/commercial/school-cartoon" },
+        { title: "Master Bedroom", desc: "Calm elegant designs", image: bedroomImg, to: "/wall-art-services/home/master-bedroom" },
+      ];
+
+  const reviews = apiTestimonials.length > 0
+    ? apiTestimonials.map(t => ({ name: t.name, text: t.message, rating: t.rating, avatar: t.initials }))
+    : [
+        { name: "Rajesh Kumar", text: "Absolutely stunning work on our living room wall! The team was professional and delivered beyond expectations.", rating: 5, avatar: "RK" },
+        { name: "Priya Sharma", text: "Got a beautiful 3D painting done for our hotel lobby. Guests always compliment it. Highly recommended!", rating: 5, avatar: "PS" },
+        { name: "Anil Reddy", text: "The kids room painting was magical. My children love their new cartoon-themed room!", rating: 5, avatar: "AR" },
+        { name: "Sunitha Devi", text: "Excellent mural work for our restaurant. The art perfectly captures our brand's essence.", rating: 5, avatar: "SD" },
+        { name: "Karthik Rao", text: "Professional team, great communication, and outstanding quality. Will definitely work with them again.", rating: 5, avatar: "KR" },
+      ];
+
+  const offerImages = [livingRoomImg, hotelImg, muralImg, threeDImg];
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentSlide((p) => (p + 1) % heroSlides.length), 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentReview((p) => (p + 1) % reviews.length), 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [reviews.length]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentOfferImg((p) => (p + 1) % offerImages.length), 3000);
     return () => clearInterval(timer);
-  }, []);
+  }, [offerImages.length]);
+
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
 
   return (
     <div>
@@ -168,7 +184,7 @@ function Index() {
             description="From living room, kids room, 3D Painting, Hotels & Restaurants and many more — we transform every space with art."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service, i) => (
+            {displayServices.map((service, i) => (
               <motion.div
                 key={service.title}
                 initial={{ opacity: 0, y: 40 }}
@@ -216,10 +232,10 @@ function Index() {
             >
               <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wider uppercase mb-4">What We Offer</span>
               <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                Premium Wall Art <span className="text-primary">Services</span>
+                {pages.about.title || "Premium Wall Art Services"}
               </h2>
               <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
-                Our commercial painting services transform spaces to suit your purpose and add layers to their character. From living room, kids room, 3D Painting, Hotels & Restaurants and many more to even large office spaces – we undertake and ensure timely delivery of all our projects.
+                {pages.about.content || "Our commercial painting services transform spaces to suit your purpose and add layers to their character. From living room, kids room, 3D Painting, Hotels & Restaurants and many more to even large office spaces – we undertake and ensure timely delivery of all our projects."}
               </p>
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {[
@@ -283,7 +299,14 @@ function Index() {
             light
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {whyChooseUs.map((item, i) => (
+            {[
+              { icon: "🏆", title: "20+ Years Experience", desc: "Two decades of transforming spaces across Hyderabad" },
+              { icon: "👨‍🎨", title: "Expert Artists", desc: "Team of skilled and experienced professional painters" },
+              { icon: "✨", title: "Custom Designs", desc: "Tailored artwork to match your vision and space" },
+              { icon: "💰", title: "Affordable Pricing", desc: "Premium quality at competitive market rates" },
+              { icon: "⏰", title: "On-Time Delivery", desc: "We ensure timely completion of every project" },
+              { icon: "🤝", title: "Free Consultation", desc: "Complimentary design consultation for new clients" },
+            ].map((item, i) => (
               <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 30 }}
@@ -368,7 +391,7 @@ function Index() {
                 Contact Us
               </Link>
               <a
-                href="https://wa.me/919876543210"
+                href={`https://wa.me/${pages.contact.whatsapp.replace(/\+/g, "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#25D366] text-white rounded-lg font-semibold hover:bg-[#25D366]/90 transition-all shadow-lg"

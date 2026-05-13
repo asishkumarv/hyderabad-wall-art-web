@@ -37,6 +37,34 @@ app.use((err, req, res, next) => {
   });
 });
 
+const fs = require('fs');
+const path = require('path');
+const { query } = require('./config/db');
+
+// Database initialization
+const initDB = async () => {
+  try {
+    const schemaPath = path.join(__dirname, 'models', 'schema.sql');
+    const migrationsPath = path.join(__dirname, 'models', 'migrations.sql');
+    
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      await query(schema);
+      console.log('Database schema synchronized');
+    }
+    
+    if (fs.existsSync(migrationsPath)) {
+      const migrations = fs.readFileSync(migrationsPath, 'utf8');
+      await query(migrations);
+      console.log('Database migrations applied');
+    }
+  } catch (err) {
+    console.error('Database initialization failed:', err);
+  }
+};
+
+initDB();
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

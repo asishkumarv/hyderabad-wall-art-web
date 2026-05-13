@@ -2,11 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
 import heroImg from "@/assets/hero-slide-1.jpg";
-import hotelImg from "@/assets/service-hotel.jpg";
-import livingRoomImg from "@/assets/service-living-room.jpg";
-import muralImg from "@/assets/service-mural.jpg";
-import stencilImg from "@/assets/service-stencil.jpg";
-import woodImg from "@/assets/service-woodcarved.jpg";
+import { useStore, type ServiceContent } from "@/lib/store";
 
 export const Route = createFileRoute("/wall-art-services/")({
   head: () => ({
@@ -20,15 +16,16 @@ export const Route = createFileRoute("/wall-art-services/")({
   component: WallArtServicesPage,
 });
 
-const categories = [
-  { title: "Commercial Wall Art", desc: "Transform hotels, restaurants, offices & schools with professional wall art that enhances ambience and brand identity.", image: hotelImg, to: "/wall-art-services/commercial/hotels-restaurants" },
-  { title: "Home Wall Art", desc: "Elevate every room in your home with custom-designed wall art — from living rooms to bedrooms, staircases to ceilings.", image: livingRoomImg, to: "/wall-art-services/home/living-room" },
-  { title: "Mural Paintings", desc: "Large-scale artistic murals that tell stories and transform entire walls into magnificent works of art.", image: muralImg, to: "/wall-art-services/mural-paintings" },
-  { title: "Stencil Wall Painting", desc: "Beautiful repetitive pattern designs using professional stencil techniques — budget-friendly and stylish.", image: stencilImg, to: "/wall-art-services/stencil-wall-painting" },
-  { title: "Wood Carved Wall Art", desc: "Premium handcrafted wooden wall panels and carvings that add luxury and texture to any interior.", image: woodImg, to: "/wall-art-services/wood-carved-wall-art" },
-];
-
 function WallArtServicesPage() {
+  const { services, isLoading } = useStore();
+
+  if (isLoading) {
+    return <div className="py-40 text-center">Loading services...</div>;
+  }
+
+  // Map services to the card structure
+  const activeServices = services.filter((s: ServiceContent) => s.isActive);
+
   return (
     <div>
       {/* Hero Banner */}
@@ -67,19 +64,28 @@ function WallArtServicesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading subtitle="Explore" title="Our Service Categories" description="Browse our comprehensive range of wall art services" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map((cat, i) => (
+            {activeServices.map((service: ServiceContent, i: number) => (
               <motion.div
-                key={cat.title}
+                key={service.key}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1, duration: 0.5 }}
               >
-                <Link to={cat.to} className="group block">
+                <Link 
+                  to={
+                    service.key === "home" ? "/wall-art-services/home/living-room" : 
+                    service.key === "commercial" ? "/wall-art-services/commercial/hotels-restaurants" :
+                    service.key === "mural" ? "/wall-art-services/mural-paintings" :
+                    service.key === "stencil" ? "/wall-art-services/stencil-wall-painting" :
+                    "/wall-art-services"
+                  } 
+                  className="group block"
+                >
                   <div className="relative overflow-hidden rounded-2xl aspect-[4/3] shadow-xl">
                     <img
-                      src={cat.image}
-                      alt={cat.title}
+                      src={service.images[0] || heroImg}
+                      alt={service.label}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       loading="lazy"
                     />
@@ -90,8 +96,8 @@ function WallArtServicesPage() {
                       </span>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="font-heading font-bold text-xl text-white group-hover:text-gold transition-colors">{cat.title}</h3>
-                      <p className="text-white/70 text-sm mt-2 line-clamp-2">{cat.desc}</p>
+                      <h3 className="font-heading font-bold text-xl text-white group-hover:text-gold transition-colors">{service.label}</h3>
+                      <p className="text-white/70 text-sm mt-2 line-clamp-2">{service.description}</p>
                     </div>
                   </div>
                 </Link>
@@ -118,7 +124,7 @@ function WallArtServicesPage() {
               { icon: "🎨", title: "High-Quality Materials", desc: "Only the best paints and materials for lasting beauty" },
               { icon: "⏰", title: "On-Time Delivery", desc: "We ensure timely completion of every project" },
               { icon: "🤝", title: "Free Consultation", desc: "Complimentary design consultation for all clients" },
-            ].map((item, i) => (
+            ].map((item: { icon: string; title: string; desc: string }, i: number) => (
               <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 30 }}

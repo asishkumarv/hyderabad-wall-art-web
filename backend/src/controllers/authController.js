@@ -3,6 +3,15 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
 require('dotenv').config();
 
+const transformUser = (user) => {
+  if (!user) return null;
+  const { account_status, ...rest } = user;
+  return {
+    ...rest,
+    accountStatus: account_status
+  };
+};
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -29,9 +38,9 @@ exports.login = async (req, res) => {
     );
 
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ token, user: userWithoutPassword });
+    res.json({ token, user: transformUser(userWithoutPassword) });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -39,24 +48,49 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const result = await query('SELECT id, name, email, role, phone, avatar, account_status, permissions, last_login FROM users WHERE id = $1', [req.user.id]);
-    res.json(result.rows[0]);
+    res.json(transformUser(result.rows[0]));
   } catch (err) {
-    console.error(err);
+    console.error('GetMe error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 exports.updateProfile = async (req, res) => {
-  const { name, email, phone, avatar, accountStatus, permissions } = req.body;
+  const updates = { ...req.body };
+  // Sanitize updates
+  delete updates.id;
+  delete updates.password;
+  delete updates.role;
+  delete updates.created_at;
+  delete updates.updated_at;
   
+  // Map camelCase to snake_case for database
+  if (updates.accountStatus) {
+    updates.account_status = updates.accountStatus;
+    delete updates.accountStatus;
+  }
+
+  const fields = Object.keys(updates);
+  if (fields.length === 0) {
+    return res.status(400).json({ message: 'No fields to update' });
+  }
+
   try {
+    const setClause = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
+    const values = [...fields.map(field => updates[field]), req.user.id];
+    
     const result = await query(
-      'UPDATE users SET name = $1, email = $2, phone = $3, avatar = $4, account_status = $5, permissions = $6 WHERE id = $7 RETURNING id, name, email, role, phone, avatar, account_status, permissions',
-      [name, email, phone, avatar, accountStatus, permissions, req.user.id]
+      `UPDATE users SET ${setClause}, updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING id, name, email, role, phone, avatar, account_status, permissions`,
+      values
     );
-    res.json(result.rows[0]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(transformUser(result.rows[0]));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('UpdateProfile error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

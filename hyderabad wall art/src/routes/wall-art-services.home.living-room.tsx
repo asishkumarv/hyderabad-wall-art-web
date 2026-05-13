@@ -11,6 +11,7 @@ export const Route = createFileRoute("/wall-art-services/home/living-room")({
   }),
   component: () => (
     <ServicePageLayout
+      serviceKey="home"
       title="Living Room Wall Art"
       subtitle="Home Wall Art"
       description="Make your living room the heart of your home with captivating wall art. From elegant abstract designs to luxury modern styles, we create focal points that spark conversations and reflect your personality."

@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   account_status TEXT DEFAULT 'Active',
   permissions TEXT[] DEFAULT ARRAY['dashboard', 'content', 'settings'],
   last_login TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Services table
@@ -35,7 +36,8 @@ CREATE TABLE IF NOT EXISTS gallery (
   category TEXT,
   alt_text TEXT,
   image_url TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Leads table
@@ -49,7 +51,8 @@ CREATE TABLE IF NOT EXISTS leads (
   suggested_location TEXT,
   status TEXT DEFAULT 'new',
   last_status_change_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Blogs table
@@ -61,7 +64,8 @@ CREATE TABLE IF NOT EXISTS blogs (
   excerpt TEXT,
   content TEXT,
   image TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Wallpaper Categories table
@@ -69,7 +73,8 @@ CREATE TABLE IF NOT EXISTS categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   image TEXT,
-  description TEXT
+  description TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Videos table
@@ -78,7 +83,8 @@ CREATE TABLE IF NOT EXISTS videos (
   title TEXT NOT NULL,
   thumbnail TEXT,
   video_url TEXT NOT NULL,
-  category TEXT
+  category TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Testimonials table
@@ -89,14 +95,15 @@ CREATE TABLE IF NOT EXISTS testimonials (
   rating INTEGER DEFAULT 5,
   message TEXT,
   image TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Activities table
 CREATE TABLE IF NOT EXISTS activities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   message TEXT NOT NULL,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Pages content table (Single row or key-value)
