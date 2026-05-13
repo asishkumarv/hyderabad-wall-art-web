@@ -77,10 +77,45 @@ export type SiteSettings = {
   officeAddress: string;
 };
 
+export type WhyChoosePoint = { icon: string; title: string; desc: string };
+export type StatPoint = { num: string; label: string };
+
+export type HeroSlide = {
+  image: string;
+  title: string;
+  subtitle: string;
+};
+
+export type HomePageContent = {
+  heroSlides: HeroSlide[];
+  whyChooseUs: WhyChoosePoint[];
+  stats: StatPoint[];
+};
+
+export type ExpertisePoint = { name: string; pct: number };
+
+export type AboutPageContent = {
+  title: string;
+  content: string;
+  founderName: string;
+  founderImage: string;
+  founderDescription: string;
+  expertise: ExpertisePoint[];
+};
+
+export type ContactPageContent = {
+  phone: string;
+  email: string;
+  address: string;
+  whatsapp: string;
+  mapEmbed: string;
+  workingHours: string;
+};
+
 export type SitePages = {
-  home: { heroTitle: string; heroImages: string[] };
-  about: { title: string; content: string; founderName: string; founderImage: string; founderDescription: string };
-  contact: { phone: string; email: string; address: string; whatsapp: string; mapEmbed: string };
+  home: HomePageContent;
+  about: AboutPageContent;
+  contact: ContactPageContent;
 };
 
 export function useStore() {
@@ -102,9 +137,9 @@ export function useStore() {
     videos: [],
     testimonials: [],
     pages: {
-      home: { heroTitle: "", heroImages: [] },
-      about: { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
-      contact: { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
+      home: { heroSlides: [], whyChooseUs: [], stats: [] },
+      about: { title: "", content: "", founderName: "", founderImage: "", founderDescription: "", expertise: [] },
+      contact: { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "", workingHours: "" },
     },
     settings: {
       siteName: "Hyderabad Wall Arts",
@@ -161,9 +196,9 @@ export function useStore() {
           createdAt: new Date(t.created_at).getTime(),
         })) : [],
         pages: {
-          home: (pages && pages.home) || { heroTitle: "", heroImages: [] },
-          about: (pages && pages.about) || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
-          contact: (pages && pages.contact) || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
+          home: (pages && pages.home) || { heroSlides: [], whyChooseUs: [], stats: [] },
+          about: (pages && pages.about) || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "", expertise: [] },
+          contact: (pages && pages.contact) || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "", workingHours: "" },
         },
         settings: settings ? {
           ...settings,

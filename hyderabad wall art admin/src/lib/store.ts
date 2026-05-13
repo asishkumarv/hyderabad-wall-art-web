@@ -86,10 +86,22 @@ export type ActivityRecord = {
   timestamp: number;
 };
 
-export type HomePageContent = {
-  heroTitle: string;
-  heroImages: string[];
+export type WhyChoosePoint = { icon: string; title: string; desc: string };
+export type StatPoint = { num: string; label: string };
+
+export type HeroSlide = {
+  image: string;
+  title: string;
+  subtitle: string;
 };
+
+export type HomePageContent = {
+  heroSlides: HeroSlide[];
+  whyChooseUs: WhyChoosePoint[];
+  stats: StatPoint[];
+};
+
+export type ExpertisePoint = { name: string; pct: number };
 
 export type AboutPageContent = {
   title: string;
@@ -97,6 +109,7 @@ export type AboutPageContent = {
   founderName: string;
   founderImage: string;
   founderDescription: string;
+  expertise: ExpertisePoint[];
 };
 
 export type ContactPageContent = {
@@ -105,6 +118,7 @@ export type ContactPageContent = {
   address: string;
   whatsapp: string;
   mapEmbed: string;
+  workingHours: string;
 };
 
 export type ContactSubmission = {
@@ -164,9 +178,9 @@ export function useStore() {
     contacts: [],
     activities: [],
     pages: {
-      home: { heroTitle: "", heroImages: [] },
-      about: { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
-      contact: { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
+      home: { heroSlides: [], whyChooseUs: [], stats: [] },
+      about: { title: "", content: "", founderName: "", founderImage: "", founderDescription: "", expertise: [] },
+      contact: { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "", workingHours: "" },
     },
     settings: {
       siteName: "Hyderabad Wall Arts",
@@ -241,9 +255,9 @@ export function useStore() {
           timestamp: new Date(a.created_at).getTime(),
         })) : [],
         pages: {
-          home: (pages && pages.home) || { heroTitle: "", heroImages: [] },
-          about: (pages && pages.about) || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "" },
-          contact: (pages && pages.contact) || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "" },
+          home: (pages && pages.home) || { heroSlides: [], whyChooseUs: [], stats: [] },
+          about: (pages && pages.about) || { title: "", content: "", founderName: "", founderImage: "", founderDescription: "", expertise: [] },
+          contact: (pages && pages.contact) || { phone: "", email: "", address: "", whatsapp: "", mapEmbed: "", workingHours: "" },
         },
         settings: settings ? {
           ...settings,

@@ -137,7 +137,7 @@ function ContactPage() {
                     { icon: "📍", label: "Address", value: contact.address || "Hyderabad, Telangana, India" },
                     { icon: "📞", label: "Phone", value: contact.phone || "+91 98765 43210" },
                     { icon: "📧", label: "Email", value: contact.email || "info@hyderabadwallarts.com" },
-                    { icon: "⏰", label: "Working Hours", value: "Mon - Sat: 9:00 AM - 7:00 PM" },
+                    { icon: "⏰", label: "Working Hours", value: contact.workingHours || "Mon - Sat: 9:00 AM - 7:00 PM" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-4 p-4 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
                       <span className="text-2xl">{item.icon}</span>

@@ -36,8 +36,12 @@ function Index() {
   const [currentOfferImg, setCurrentOfferImg] = useState(0);
 
   // Fallbacks if DB is empty
-  const heroSlides = pages.home.heroImages.length > 0 
-    ? pages.home.heroImages.map(img => ({ image: img, heading: pages.home.heroTitle || "Artistic Excellence\nSince 2000", sub: "Transforming spaces across Hyderabad" }))
+  const heroSlides = (pages.home.heroSlides && pages.home.heroSlides.length > 0)
+    ? pages.home.heroSlides.map(slide => ({ 
+        image: slide.image, 
+        heading: slide.title || "Artistic Excellence", 
+        sub: slide.subtitle || "Since 2000" 
+      }))
     : [
         { image: heroSlide1, heading: "Transform Your Walls\nInto Masterpieces", sub: "Premium wall art for homes, hotels & commercial spaces" },
         { image: heroSlide2, heading: "Luxury Wall Art\nFor Every Space", sub: "Hotels, restaurants & office interiors transformed" },
@@ -245,12 +249,12 @@ function Index() {
                 {pages.about.content || "Our commercial painting services transform spaces to suit your purpose and add layers to their character. From living room, kids room, 3D Painting, Hotels & Restaurants and many more to even large office spaces – we undertake and ensure timely delivery of all our projects."}
               </p>
               <div className="mt-8 grid grid-cols-2 gap-4">
-                {[
+                {(pages.home.stats && pages.home.stats.length > 0 ? pages.home.stats : [
                   { num: "500+", label: "Projects Completed" },
                   { num: "20+", label: "Years Experience" },
                   { num: "200+", label: "Happy Clients" },
                   { num: "50+", label: "Expert Artists" },
-                ].map((stat) => (
+                ]).map((stat) => (
                   <div key={stat.label} className="p-4 rounded-xl bg-card border border-border">
                     <p className="font-heading text-2xl font-bold text-primary">{stat.num}</p>
                     <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
@@ -306,14 +310,14 @@ function Index() {
             light
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
+            {(pages.home.whyChooseUs && pages.home.whyChooseUs.length > 0 ? pages.home.whyChooseUs : [
               { icon: "🏆", title: "20+ Years Experience", desc: "Two decades of transforming spaces across Hyderabad" },
               { icon: "👨‍🎨", title: "Expert Artists", desc: "Team of skilled and experienced professional painters" },
               { icon: "✨", title: "Custom Designs", desc: "Tailored artwork to match your vision and space" },
               { icon: "💰", title: "Affordable Pricing", desc: "Premium quality at competitive market rates" },
               { icon: "⏰", title: "On-Time Delivery", desc: "We ensure timely completion of every project" },
               { icon: "🤝", title: "Free Consultation", desc: "Complimentary design consultation for new clients" },
-            ].map((item, i) => (
+            ]).map((item, i) => (
               <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 30 }}

@@ -1,29 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.jpg";
-
-const wallArtServices = {
-  "Commercial Wall Art": [
-    { label: "Hotels & Restaurants", to: "/wall-art-services/commercial/hotels-restaurants" },
-    { label: "Shops & Offices", to: "/wall-art-services/commercial/shops-offices" },
-    { label: "School Cartoon Painting", to: "/wall-art-services/commercial/school-cartoon" },
-  ],
-  "Home Wall Art": [
-    { label: "Living Room", to: "/wall-art-services/home/living-room" },
-    { label: "TV Unit Wall", to: "/wall-art-services/home/tv-unit" },
-    { label: "Master Bedroom", to: "/wall-art-services/home/master-bedroom" },
-    { label: "Kids Room", to: "/wall-art-services/home/kids-room" },
-    { label: "Staircase Wall", to: "/wall-art-services/home/staircase" },
-    { label: "3D Painting", to: "/wall-art-services/home/3d-painting" },
-    { label: "Balcony", to: "/wall-art-services/home/balcony" },
-    { label: "Ceiling", to: "/wall-art-services/home/ceiling" },
-    { label: "Guest Room", to: "/wall-art-services/home/guest-room" },
-  ],
-  "Mural Paintings": [{ label: "View All Murals", to: "/wall-art-services/mural-paintings" }],
-  "Stencil Wall Painting": [{ label: "View All Stencils", to: "/wall-art-services/stencil-wall-painting" }],
-  "Wood Carved Wall Art": [{ label: "View All Wood Art", to: "/wall-art-services/wood-carved-wall-art" }],
-};
+import { useStore } from "@/lib/store";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -40,7 +19,33 @@ export default function Header() {
   const [desktopServicesOpen, setDesktopServicesOpen] = useState(false);
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { services } = useStore();
   const location = useLocation();
+
+  const wallArtServices = useMemo(() => {
+    const categories: Record<string, any[]> = {
+      "Commercial Wall Art": [],
+      "Home Wall Art": [],
+      "Specialty Art": [],
+    };
+
+    services.forEach(service => {
+      if (service.key === "wallpaper") return;
+      
+      const item = { label: service.title, to: `/wall-art-services/${service.key}` };
+      
+      if (service.category?.toLowerCase().includes("commercial")) {
+        categories["Commercial Wall Art"].push(item);
+      } else if (service.category?.toLowerCase().includes("home") || service.category?.toLowerCase().includes("residential")) {
+        categories["Home Wall Art"].push(item);
+      } else {
+        categories["Specialty Art"].push(item);
+      }
+    });
+
+    // Remove empty categories
+    return Object.fromEntries(Object.entries(categories).filter(([_, items]) => items.length > 0));
+  }, [services]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -116,14 +121,17 @@ export default function Header() {
                             onMouseEnter={() => setActiveCategory(category)}
                             onMouseLeave={() => setActiveCategory(null)}
                           >
-                            <div className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-primary">
+                            <Link
+                              to={items.length === 1 ? items[0].to : "/wall-art-services"}
+                              className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-primary"
+                            >
                               {category}
                               {items.length > 1 && (
                                 <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               )}
-                            </div>
+                            </Link>
                             <AnimatePresence>
                               {activeCategory === category && items.length > 1 && (
                                 <motion.div

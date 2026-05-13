@@ -17,14 +17,6 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
 });
 
-const expertise = [
-  { name: "Tribal Art", pct: 95 },
-  { name: "3D Paintings", pct: 61 },
-  { name: "Wall Murals", pct: 85 },
-  { name: "Abstract Art", pct: 77 },
-  { name: "Wall Sculpture", pct: 77 },
-  { name: "Portrait", pct: 77 },
-];
 
 function AboutPage() {
   const { pages, isLoading } = useStore();
@@ -65,7 +57,14 @@ function AboutPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading subtitle="Our Skills" title="Our Expertise" />
           <div className="space-y-6">
-            {expertise.map((skill, i) => (
+            {(about.expertise && about.expertise.length > 0 ? about.expertise : [
+              { name: "Tribal Art", pct: 95 },
+              { name: "3D Paintings", pct: 61 },
+              { name: "Wall Murals", pct: 85 },
+              { name: "Abstract Art", pct: 77 },
+              { name: "Wall Sculpture", pct: 77 },
+              { name: "Portrait", pct: 77 },
+            ]).map((skill, i) => (
               <motion.div
                 key={skill.name}
                 initial={{ opacity: 0, x: -30 }}

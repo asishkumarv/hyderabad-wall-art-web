@@ -7,6 +7,8 @@ import threeDImg from "@/assets/service-3d-painting.jpg";
 import kidsRoomImg from "@/assets/service-kids-room.jpg";
 import officeImg from "@/assets/service-office.jpg";
 import staircaseImg from "@/assets/service-staircase.jpg";
+import { useStore } from "@/lib/store";
+import { X } from "lucide-react";
 
 export const Route = createFileRoute("/videos")({
   head: () => ({
@@ -20,17 +22,27 @@ export const Route = createFileRoute("/videos")({
   component: VideosPage,
 });
 
-const videos = [
-  { title: "Living Room Mural Transformation", id: "dQw4w9WgXcQ", thumbnail: livingRoomImg, category: "Home" },
-  { title: "Hotel Lobby Art Installation", id: "dQw4w9WgXcQ", thumbnail: hotelImg, category: "Commercial" },
-  { title: "3D Wall Painting Process", id: "dQw4w9WgXcQ", thumbnail: threeDImg, category: "3D Art" },
-  { title: "Kids Room Cartoon Painting", id: "dQw4w9WgXcQ", thumbnail: kidsRoomImg, category: "Home" },
-  { title: "Office Wall Mural Design", id: "dQw4w9WgXcQ", thumbnail: officeImg, category: "Commercial" },
-  { title: "Staircase Wall Art Showcase", id: "dQw4w9WgXcQ", thumbnail: staircaseImg, category: "Home" },
-];
 
 function VideosPage() {
   const [openVideo, setOpenVideo] = useState<string | null>(null);
+  const { videos: apiVideos, isLoading } = useStore();
+
+  const videos = apiVideos.length > 0 ? apiVideos : [
+    { title: "Living Room Mural Transformation", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnail: livingRoomImg, category: "Home" },
+    { title: "Hotel Lobby Art Installation", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnail: hotelImg, category: "Commercial" },
+  ];
+
+  const getEmbedUrl = (url: string) => {
+    if (url.includes("youtube.com/watch?v=")) {
+      const id = url.split("v=")[1]?.split("&")[0];
+      return `https://www.youtube.com/embed/${id}?autoplay=1`;
+    }
+    if (url.includes("youtu.be/")) {
+      const id = url.split("youtu.be/")[1]?.split("?")[0];
+      return `https://www.youtube.com/embed/${id}?autoplay=1`;
+    }
+    return url; // Assume it's a direct file link if not YouTube
+  };
 
   return (
     <div>
@@ -55,7 +67,7 @@ function VideosPage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-xl transition-all group cursor-pointer"
-                onClick={() => setOpenVideo(video.id)}
+                onClick={() => setOpenVideo(video.videoUrl)}
               >
                 <div className="aspect-video relative overflow-hidden">
                   <img
@@ -101,19 +113,27 @@ function VideosPage() {
             >
               <button
                 onClick={() => setOpenVideo(null)}
-                className="absolute -top-12 right-0 text-white hover:text-gold transition-colors z-10"
+                className="absolute top-4 right-4 text-white hover:text-gold transition-colors z-[60] bg-navy/40 rounded-full p-1"
+                aria-label="Close video"
               >
-                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-8 h-8" />
               </button>
-              <iframe
-                src={`https://www.youtube.com/embed/${openVideo}?autoplay=1`}
-                className="w-full h-full"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                title="Video player"
-              />
+              {openVideo.includes("youtube.com") || openVideo.includes("youtu.be") ? (
+                <iframe
+                  src={getEmbedUrl(openVideo)}
+                  className="w-full h-full"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title="Video player"
+                />
+              ) : (
+                <video
+                  src={openVideo}
+                  autoPlay
+                  controls
+                  className="w-full h-full"
+                />
+              )}
             </motion.div>
           </motion.div>
         )}

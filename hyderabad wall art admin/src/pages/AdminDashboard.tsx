@@ -25,6 +25,10 @@ import {
   UploadCloud,
   Video,
   Wallpaper,
+  X,
+  Check,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -40,6 +44,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { renderRichText } from "@/lib/rich-text";
 import {
@@ -95,6 +100,30 @@ function appendSnippet(content: string, snippet: string) {
 
 function formatDate(timestamp: number) {
   return new Date(timestamp).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function FeedbackModal({ open, onOpenChange, title, message, type = "success" }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; message: string; type?: "success" | "error" }) {
+  const isSuccess = type === "success";
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={`panel-luxury ${isSuccess ? "border-gold/50" : "border-destructive/50"} text-center py-12 sm:max-w-md overflow-hidden`}>
+        <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", damping: 15 }}>
+          <div className={`mx-auto w-24 h-24 rounded-full ${isSuccess ? "bg-gold/10" : "bg-destructive/10"} flex items-center justify-center mb-6 relative`}>
+             <motion.div 
+               className={`absolute inset-0 rounded-full border-2 ${isSuccess ? "border-gold/30" : "border-destructive/30"}`}
+               initial={{ scale: 1 }}
+               animate={{ scale: 1.5, opacity: 0 }}
+               transition={{ duration: 1.5, repeat: Infinity }}
+             />
+            {isSuccess ? <Check className="h-12 w-12 text-gold" /> : <AlertCircle className="h-12 w-12 text-destructive" />}
+          </div>
+          <h2 className={`text-3xl font-bold tracking-tight mb-2 ${isSuccess ? "text-foreground" : "text-destructive"}`}>{title}</h2>
+          <p className="text-muted-foreground mb-8 text-lg">{message}</p>
+          <Button variant={isSuccess ? "luxury" : "destructive"} onClick={() => onOpenChange(false)} className="px-12 h-12 text-lg shadow-gold">Done</Button>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function ModuleShell({ title, description, children }: { title: string; description: string; children: ReactNode }) {
@@ -202,6 +231,9 @@ export default function AdminDashboard() {
   const [profileDraft, setProfileDraft] = useState<ProfileDraft | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<any>(null);
   const [pagesDraft, setPagesDraft] = useState<any>(null);
+  const [previewVideo, setPreviewVideo] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ open: boolean; title: string; message: string; type: "success" | "error" }>({ open: false, title: "", message: "", type: "success" });
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, any>>({});
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -210,6 +242,7 @@ export default function AdminDashboard() {
   const blogGalleryUploadRef = useRef<HTMLInputElement>(null);
   const categoryUploadRef = useRef<HTMLInputElement>(null);
   const videoUploadRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const testimonialUploadRef = useRef<HTMLInputElement>(null);
   const aboutUploadRef = useRef<HTMLInputElement>(null);
   const homeUploadRef = useRef<HTMLInputElement>(null);
@@ -309,37 +342,58 @@ export default function AdminDashboard() {
       slug: slugify(blogDraft.title),
       image: blogDraft.image || "/hwa-wall-bg.jpg",
     };
+    setIsSaving(true);
     try {
       if (blogDraft.id) await updateBlogPost(blogDraft.id, payload);
       else await addBlogPost(payload);
-      toast.success(blogDraft.id ? "Blog post updated!" : "Blog post published!");
+      setSuccessInfo({
+        open: true,
+        title: "Success!",
+        message: blogDraft.id ? "Your blog post has been updated." : "Your new blog post is now live!"
+      });
       setBlogDraft(emptyBlogDraft);
     } catch (err) {
       toast.error("Failed to save blog post");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveCategoryDraft = async () => {
     if (!categoryDraft.name.trim()) return;
+    setIsSaving(true);
     try {
       if (categoryDraft.id) await updateCategory(categoryDraft.id, categoryDraft);
       else await addCategory({ ...categoryDraft, image: categoryDraft.image || "/hwa-wall-bg.jpg" });
-      toast.success(categoryDraft.id ? "Category updated!" : "Category added!");
+      setSuccessInfo({
+        open: true,
+        title: "Category Saved",
+        message: categoryDraft.id ? "The category details have been updated." : "New wallpaper category added successfully."
+      });
       setCategoryDraft(emptyCategoryDraft);
     } catch (err) {
       toast.error("Failed to save category");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveVideoDraft = async () => {
     if (!videoDraft.title.trim() || !videoDraft.videoUrl.trim()) return;
+    setIsSaving(true);
     try {
       if (videoDraft.id) await updateVideo(videoDraft.id, { ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
       else await addVideo({ ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
-      toast.success(videoDraft.id ? "Video updated!" : "Video added!");
+      setSuccessInfo({
+        open: true,
+        title: "Video Published",
+        message: videoDraft.id ? "The video information has been updated." : "Your new video is now in the gallery."
+      });
       setVideoDraft(emptyVideoDraft);
     } catch (err) {
       toast.error("Failed to save video");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -349,13 +403,26 @@ export default function AdminDashboard() {
       ...testimonialDraft,
       image: testimonialDraft.image || "",
     };
+    setIsSaving(true);
     try {
       if (testimonialDraft.id) await updateTestimonial(testimonialDraft.id, payload);
       else await addTestimonial(payload);
-      toast.success(testimonialDraft.id ? "Testimonial updated!" : "Testimonial added!");
+      setFeedback({
+        open: true,
+        type: "success",
+        title: "Testimonial Saved",
+        message: testimonialDraft.id ? "Testimonial updated successfully." : "New testimonial added to the site."
+      });
       setTestimonialDraft(emptyTestimonialDraft);
     } catch (err) {
-      toast.error("Failed to save testimonial");
+      setFeedback({
+        open: true,
+        type: "error",
+        title: "Update Failed",
+        message: "There was an error saving the testimonial. Please try again."
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -848,16 +915,30 @@ export default function AdminDashboard() {
                               <Button 
                                 variant="luxury" 
                                 className="w-full mt-4" 
+                                disabled={isSaving}
                                 onClick={async () => {
+                                  setIsSaving(true);
                                   try {
                                     await updateService(service.key, draft);
-                                    toast.success(`${service.label} service updated successfully!`);
+                                    setFeedback({
+                                      open: true,
+                                      type: "success",
+                                      title: "Service Updated",
+                                      message: "The service information and images have been saved."
+                                    });
                                   } catch (err) {
-                                    toast.error(`Failed to update ${service.label} service`);
-                                    console.error(err);
+                                    setFeedback({
+                                      open: true,
+                                      type: "error",
+                                      title: "Save Error",
+                                      message: "We couldn't save the service changes. Please check your connection."
+                                    });
+                                  } finally {
+                                    setIsSaving(false);
                                   }
                                 }}
                               >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 Update {service.label} Service
                               </Button>
                             </CardContent>
@@ -951,7 +1032,30 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setBlogDraft(emptyBlogDraft)}>Clear</Button>
-                          <Button variant="luxury" onClick={saveBlogDraft}>{blogDraft.id ? "Update post" : "Publish post"}</Button>
+                          <Button variant="luxury" onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await saveBlogDraft();
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: blogDraft.id ? "Blog Updated" : "Blog Published",
+                                message: `The blog post "${blogDraft.title}" has been successfully ${blogDraft.id ? "updated" : "published"}.`
+                              });
+                            } catch (err) {
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Action Failed",
+                                message: "We couldn't save your blog post. Please check your data."
+                              });
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {blogDraft.id ? "Update post" : "Publish post"}
+                          </Button>
                         </div>
                       </div>
                     </ModuleShell>
@@ -1022,7 +1126,30 @@ export default function AdminDashboard() {
                         <Textarea value={categoryDraft.description || ""} onChange={(event) => setCategoryDraft((draft) => ({ ...draft, description: event.target.value }))} className="min-h-[180px]" placeholder="Description" />
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setCategoryDraft(emptyCategoryDraft)}>Clear</Button>
-                          <Button variant="luxury" onClick={saveCategoryDraft}>{categoryDraft.id ? "Update category" : "Add category"}</Button>
+                          <Button variant="luxury" onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await saveCategoryDraft();
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: categoryDraft.id ? "Category Updated" : "Category Added",
+                                message: "Wallpaper category changes have been applied."
+                              });
+                            } catch (err) {
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update wallpaper categories."
+                              });
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {categoryDraft.id ? "Update category" : "Add category"}
+                          </Button>
                         </div>
                       </div>
                     </ModuleShell>
@@ -1072,7 +1199,26 @@ export default function AdminDashboard() {
                           </Button>
                           <input ref={videoUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setVideoDraft((draft) => ({ ...draft, thumbnail: value })))} />
                         </div>
-                        <Input value={videoDraft.videoUrl || ""} onChange={(event) => setVideoDraft((draft) => ({ ...draft, videoUrl: event.target.value }))} placeholder="YouTube or file URL" />
+                        <div className="flex gap-3">
+                          <Input value={videoDraft.videoUrl || ""} onChange={(event) => setVideoDraft((draft) => ({ ...draft, videoUrl: event.target.value }))} placeholder="YouTube or file URL" />
+                          <Button variant="glass" onClick={() => videoFileRef.current?.click()}>
+                            <UploadCloud className="h-4 w-4" />
+                            Upload Video
+                          </Button>
+                          <input 
+                            ref={videoFileRef} 
+                            type="file" 
+                            accept="video/*" 
+                            className="hidden" 
+                            onChange={async (event) => {
+                              const file = event.target.files?.[0];
+                              if (!file) return;
+                              const url = await fileToDataUrl(file);
+                              setVideoDraft((draft) => ({ ...draft, videoUrl: url }));
+                              (event.target as HTMLInputElement).value = "";
+                            }} 
+                          />
+                        </div>
                         <Select value={videoDraft.category} onValueChange={(value: VideoCategory) => setVideoDraft((draft) => ({ ...draft, category: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Category" />
@@ -1085,7 +1231,30 @@ export default function AdminDashboard() {
                         </Select>
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setVideoDraft(emptyVideoDraft)}>Clear</Button>
-                          <Button variant="luxury" onClick={saveVideoDraft}>{videoDraft.id ? "Update video" : "Add video"}</Button>
+                          <Button variant="luxury" onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await saveVideoDraft();
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: videoDraft.id ? "Video Updated" : "Video Added",
+                                message: "Video library changes have been saved."
+                              });
+                            } catch (err) {
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update video record."
+                              });
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {videoDraft.id ? "Update video" : "Add video"}
+                          </Button>
                         </div>
                       </div>
                     </ModuleShell>
@@ -1093,30 +1262,60 @@ export default function AdminDashboard() {
                     <ModuleShell title="Saved videos" description="Click targets open the configured video URL on the public site.">
                       <div className="space-y-3">
                         {videos.map((video) => (
-                          <Card key={video.id} className="panel-luxury overflow-hidden">
-                            <div className="grid gap-4 p-4 lg:grid-cols-[160px_1fr]">
-                              <div className="relative overflow-hidden rounded-2xl border border-border/70">
-                                <img src={video.thumbnail} alt={video.title} className="aspect-video h-full w-full object-cover" />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card/80">
-                                    <Play className="h-4 w-4 text-primary" />
-                                  </span>
+                          <Card key={video.id} className="panel-luxury overflow-hidden border-border/50">
+                            <div className="flex flex-col md:flex-row gap-4 p-4">
+                              {/* Thumbnail Container */}
+                              <div className="relative w-full md:w-[200px] shrink-0 overflow-hidden rounded-xl border border-border/70 group cursor-pointer bg-secondary/30" onClick={() => video.videoUrl && setPreviewVideo(video.videoUrl)}>
+                                {video.thumbnail ? (
+                                  <img src={video.thumbnail} alt={video.title} className="aspect-video h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                                ) : (
+                                  <div className="aspect-video flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                    <Video className="h-6 w-6 opacity-20" />
+                                    <span className="text-[10px] uppercase tracking-wider">No Thumbnail</span>
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-md shadow-xl group-hover:scale-110 transition-transform">
+                                    <Play className="h-4 w-4 text-white fill-white" />
+                                  </div>
                                 </div>
                               </div>
-                              <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <p className="font-semibold tracking-tight">{video.title}</p>
-                                    <p className="text-sm text-muted-foreground">{video.videoUrl}</p>
+
+                              {/* Content Info */}
+                              <div className="flex flex-1 flex-col justify-between min-w-0 py-1">
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="font-semibold tracking-tight text-foreground truncate">{video.title}</h4>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 uppercase tracking-wider">{video.category}</Badge>
+                                        <p className={`text-[11px] truncate ${!video.videoUrl ? "text-destructive font-bold" : "text-muted-foreground"}`}>
+                                          {video.videoUrl ? (video.videoUrl.startsWith("data:") ? "Direct Upload (Base64)" : video.videoUrl) : "⚠ Missing Video Data"}
+                                        </p>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <Badge variant="outline">{video.category}</Badge>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="icon" onClick={() => setVideoDraft(video)} aria-label="Edit video">
-                                    <FileText className="h-4 w-4" />
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/30">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 gap-2 bg-secondary/30 hover:bg-primary hover:text-white transition-all"
+                                    onClick={() => setVideoDraft(video)}
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    Edit Details
                                   </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => deleteVideo(video.id)} aria-label="Delete video">
-                                    <Trash2 className="h-4 w-4" />
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 gap-2 bg-destructive/5 text-destructive border-destructive/20 hover:bg-destructive hover:text-white transition-all"
+                                    onClick={() => deleteVideo(video.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Remove
                                   </Button>
                                 </div>
                               </div>
@@ -1132,33 +1331,179 @@ export default function AdminDashboard() {
                   <div className="grid gap-6 xl:grid-cols-3">
                     <ModuleShell title="Home page" description="Control the home hero title, hero images, and section visibility.">
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Title</label>
-                          <Input value={pagesDraft.home.heroTitle || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroTitle: event.target.value } })} placeholder="Hero title" />
-                        </div>
-                        <div className="space-y-3">
+                        {/* Hero Slides Section */}
+                        <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Images</label>
+                             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Hero Slides</label>
                              <Button variant="glass" size="sm" onClick={() => homeUploadRef.current?.click()}>
                                <UploadCloud className="h-4 w-4 mr-2" />
-                               Upload
+                               Add Slide
                              </Button>
-                             <input ref={homeUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => handleSingleUpload(event, (value) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroImages: [...(pagesDraft.home.heroImages || []), value] } }))} />
+                             <input ref={homeUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => {
+                               const file = event.target.files?.[0];
+                               if (!file) return;
+                               const url = await fileToDataUrl(file);
+                               setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: [...(pagesDraft.home.heroSlides || []), { image: url, title: "Artistic Excellence", subtitle: "Transforming spaces since 2000" }] } });
+                               (event.target as HTMLInputElement).value = "";
+                             }} />
                           </div>
-                          <Textarea value={(pagesDraft.home.heroImages || []).join("\n")} onChange={(event) => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroImages: event.target.value.split("\n").map((entry) => entry.trim()).filter(Boolean) } })} className="min-h-[160px]" placeholder="One image URL or base64 string per line" />
+                          
+                          <div className="space-y-3">
+                            {(pagesDraft.home.heroSlides || []).map((slide: any, idx: number) => (
+                              <Card key={idx} className="p-3 border-border/50 bg-secondary/10 relative group">
+                                <Button 
+                                  variant="destructive" 
+                                  size="icon" 
+                                  className="absolute -top-2 -right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-xl z-10" 
+                                  onClick={() => {
+                                    const newSlides = [...pagesDraft.home.heroSlides];
+                                    newSlides.splice(idx, 1);
+                                    setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: newSlides } });
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                                <div className="flex flex-col md:flex-row gap-4">
+                                  <div className="w-full md:w-32 h-20 rounded-lg overflow-hidden border border-border/50 bg-black/20 shrink-0">
+                                    <img src={slide.image} alt="Slide preview" className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="flex-1 space-y-2">
+                                    <Input 
+                                      value={slide.title} 
+                                      onChange={(e) => {
+                                        const newSlides = [...pagesDraft.home.heroSlides];
+                                        newSlides[idx].title = e.target.value;
+                                        setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: newSlides } });
+                                      }} 
+                                      placeholder="Main Heading (Title)" 
+                                      className="h-8 font-bold"
+                                    />
+                                    <Input 
+                                      value={slide.subtitle} 
+                                      onChange={(e) => {
+                                        const newSlides = [...pagesDraft.home.heroSlides];
+                                        newSlides[idx].subtitle = e.target.value;
+                                        setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: newSlides } });
+                                      }} 
+                                      placeholder="Sub-heading (Message)" 
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                            {(!pagesDraft.home.heroSlides || pagesDraft.home.heroSlides.length === 0) && (
+                              <div className="text-center py-8 rounded-xl border border-dashed border-border text-muted-foreground text-sm">
+                                No slides added yet. Click 'Add Slide' to start.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Separator */}
+                        <div className="h-px bg-border/50 my-4" />
+
+                        <div className="space-y-3 pt-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Why Choose Us Points</label>
+                           {(pagesDraft.home.whyChooseUs || []).map((point: any, idx: number) => (
+                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-secondary/20 relative group">
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                 onClick={() => {
+                                   const newPoints = [...pagesDraft.home.whyChooseUs];
+                                   newPoints.splice(idx, 1);
+                                   setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, whyChooseUs: newPoints } });
+                                 }}
+                               >
+                                 <Trash2 className="h-3 w-3 text-destructive" />
+                               </Button>
+                               <div className="grid grid-cols-[40px_1fr] gap-2">
+                                 <Input value={point.icon} onChange={(e) => {
+                                   const newPoints = [...pagesDraft.home.whyChooseUs];
+                                   newPoints[idx].icon = e.target.value;
+                                   setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, whyChooseUs: newPoints } });
+                                 }} placeholder="Icon (emoji)" />
+                                 <Input value={point.title} onChange={(e) => {
+                                   const newPoints = [...pagesDraft.home.whyChooseUs];
+                                   newPoints[idx].title = e.target.value;
+                                   setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, whyChooseUs: newPoints } });
+                                 }} placeholder="Title" />
+                               </div>
+                               <Input value={point.desc} onChange={(e) => {
+                                 const newPoints = [...pagesDraft.home.whyChooseUs];
+                                 newPoints[idx].desc = e.target.value;
+                                 setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, whyChooseUs: newPoints } });
+                               }} placeholder="Description" className="text-xs" />
+                             </div>
+                           ))}
+                           <Button variant="outline" size="sm" className="w-full text-[10px] uppercase tracking-tighter h-8" onClick={() => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, whyChooseUs: [...(pagesDraft.home.whyChooseUs || []), { icon: "✨", title: "New Point", desc: "Short description" }] } })}>
+                             <Plus className="h-3 w-3 mr-1" /> Add Point
+                           </Button>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Stats</label>
+                           <div className="grid grid-cols-2 gap-2">
+                             {(pagesDraft.home.stats || []).map((stat: any, idx: number) => (
+                               <div key={idx} className="space-y-1 p-2 rounded-lg border border-border bg-secondary/10 relative group">
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   className="absolute -top-1 -right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                   onClick={() => {
+                                     const newStats = [...pagesDraft.home.stats];
+                                     newStats.splice(idx, 1);
+                                     setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, stats: newStats } });
+                                   }}
+                                 >
+                                   <X className="h-3 w-3" />
+                                 </Button>
+                                 <Input value={stat.num} onChange={(e) => {
+                                   const newStats = [...pagesDraft.home.stats];
+                                   newStats[idx].num = e.target.value;
+                                   setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, stats: newStats } });
+                                 }} placeholder="500+" className="h-7 text-xs font-bold" />
+                                 <Input value={stat.label} onChange={(e) => {
+                                   const newStats = [...pagesDraft.home.stats];
+                                   newStats[idx].label = e.target.value;
+                                   setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, stats: newStats } });
+                                 }} placeholder="Label" className="h-7 text-[10px]" />
+                               </div>
+                             ))}
+                             <Button variant="outline" size="sm" className="h-full min-h-[60px] text-[10px]" onClick={() => setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, stats: [...(pagesDraft.home.stats || []), { num: "0", label: "New Stat" }] } })}>
+                               <Plus className="h-3 w-3" />
+                             </Button>
+                           </div>
                         </div>
                         <Button 
                           variant="luxury" 
                           className="w-full" 
+                          disabled={isSaving}
                           onClick={async () => {
+                            setIsSaving(true);
                             try {
                               await updateHomePage(pagesDraft.home);
-                              toast.success("Home page updated!");
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: "Home Page Saved",
+                                message: "Home page hero slides, points, and stats updated."
+                              });
                             } catch (err) {
-                              toast.error("Failed to update home page");
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update home page configuration."
+                              });
+                            } finally {
+                              setIsSaving(false);
                             }
                           }}
                         >
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                           Save Home Page
                         </Button>
                       </div>
@@ -1191,20 +1536,63 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Founder Description</label>
-                          <Textarea value={pagesDraft.about.founderDescription || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderDescription: event.target.value } })} className="min-h-[120px]" placeholder="Founder description" />
+                          <Textarea value={pagesDraft.about.founderDescription || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, founderDescription: event.target.value } })} className="min-h-[120px]" placeholder="Description about founder" />
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Expertise / Skills</label>
+                           {(pagesDraft.about.expertise || []).map((skill: any, idx: number) => (
+                             <div key={idx} className="flex gap-2 items-center p-2 rounded-lg border border-border bg-secondary/10 group relative">
+                               <Input value={skill.name} onChange={(e) => {
+                                 const newSkills = [...pagesDraft.about.expertise];
+                                 newSkills[idx].name = e.target.value;
+                                 setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, expertise: newSkills } });
+                               }} placeholder="Skill name" className="flex-1 h-8 text-xs" />
+                               <Input type="number" value={skill.pct} onChange={(e) => {
+                                 const newSkills = [...pagesDraft.about.expertise];
+                                 newSkills[idx].pct = parseInt(e.target.value);
+                                 setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, expertise: newSkills } });
+                               }} placeholder="%" className="w-16 h-8 text-xs" />
+                               <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => {
+                                 const newSkills = [...pagesDraft.about.expertise];
+                                 newSkills.splice(idx, 1);
+                                 setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, expertise: newSkills } });
+                               }}>
+                                 <X className="h-3 w-3" />
+                               </Button>
+                             </div>
+                           ))}
+                           <Button variant="outline" size="sm" className="w-full text-[10px] h-8" onClick={() => setPagesDraft({ ...pagesDraft, about: { ...pagesDraft.about, expertise: [...(pagesDraft.about.expertise || []), { name: "Skill", pct: 80 }] } })}>
+                             <Plus className="h-3 w-3 mr-1" /> Add Skill
+                           </Button>
                         </div>
                         <Button 
                           variant="luxury" 
                           className="w-full" 
+                          disabled={isSaving}
                           onClick={async () => {
+                            setIsSaving(true);
                             try {
                               await updateAboutPage(pagesDraft.about);
-                              toast.success("About page updated!");
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: "About Page Saved",
+                                message: "About page details updated."
+                              });
                             } catch (err) {
-                              toast.error("Failed to update about page");
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update about page configuration."
+                              });
+                            } finally {
+                              setIsSaving(false);
                             }
                           }}
                         >
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                           Save About Page
                         </Button>
                       </div>
@@ -1230,20 +1618,39 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Map Embed URL</label>
-                          <Textarea value={pagesDraft.contact.mapEmbed || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, mapEmbed: event.target.value } })} className="min-h-[120px]" placeholder="Map embed URL" />
+                          <Input value={pagesDraft.contact.mapEmbed || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, mapEmbed: event.target.value } })} placeholder="Google Maps iframe src URL" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Working Hours</label>
+                          <Input value={pagesDraft.contact.workingHours || ""} onChange={(event) => setPagesDraft({ ...pagesDraft, contact: { ...pagesDraft.contact, workingHours: event.target.value } })} placeholder="Mon - Sat: 9AM - 7PM" />
                         </div>
                         <Button 
                           variant="luxury" 
                           className="w-full" 
+                          disabled={isSaving}
                           onClick={async () => {
+                            setIsSaving(true);
                             try {
                               await updateContactPage(pagesDraft.contact);
-                              toast.success("Contact page updated!");
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: "Contact Page Saved",
+                                message: "Contact information updated."
+                              });
                             } catch (err) {
-                              toast.error("Failed to update contact page");
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update contact page."
+                              });
+                            } finally {
+                              setIsSaving(false);
                             }
                           }}
                         >
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                           Save Contact Page
                         </Button>
                       </div>
@@ -1272,7 +1679,30 @@ export default function AdminDashboard() {
                         <Textarea value={testimonialDraft.message || ""} onChange={(event) => setTestimonialDraft((draft) => ({ ...draft, message: event.target.value }))} className="min-h-[180px]" placeholder="Testimonial message" />
                         <div className="flex flex-wrap justify-between gap-3">
                           <Button variant="outline" onClick={() => setTestimonialDraft(emptyTestimonialDraft)}>Clear</Button>
-                          <Button variant="luxury" onClick={saveTestimonialDraft}>{testimonialDraft.id ? "Update testimonial" : "Add testimonial"}</Button>
+                          <Button variant="luxury" onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await saveTestimonialDraft();
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: testimonialDraft.id ? "Testimonial Updated" : "Testimonial Added",
+                                message: "Testimonial records have been updated."
+                              });
+                            } catch (err) {
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Save Error",
+                                message: "Failed to update testimonial record."
+                              });
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {testimonialDraft.id ? "Update testimonial" : "Add testimonial"}
+                          </Button>
                         </div>
                       </div>
                     </ModuleShell>
@@ -1450,15 +1880,30 @@ export default function AdminDashboard() {
                         <Button 
                           variant="luxury" 
                           className="w-full" 
+                          disabled={isSaving}
                           onClick={async () => {
+                            setIsSaving(true);
                             try {
                               await updateSettings(settingsDraft);
-                              toast.success("General settings updated!");
+                              setFeedback({
+                                open: true,
+                                type: "success",
+                                title: "Settings Saved",
+                                message: "General branding and social settings updated successfully."
+                              });
                             } catch (err) {
-                              toast.error("Failed to update settings");
+                              setFeedback({
+                                open: true,
+                                type: "error",
+                                title: "Update Failed",
+                                message: "Something went wrong while updating settings."
+                              });
+                            } finally {
+                              setIsSaving(false);
                             }
                           }}
                         >
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                           Save General Settings
                         </Button>
                       </div>
@@ -1493,6 +1938,52 @@ export default function AdminDashboard() {
           </main>
         </div>
       </div>
+
+      <AnimatePresence>
+        {previewVideo && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+            onClick={() => setPreviewVideo(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-gold"
+              onClick={e => e.stopPropagation()}
+            >
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/80 text-white rounded-full"
+                onClick={() => setPreviewVideo(null)}
+              >
+                <X className="h-6 w-6" />
+              </Button>
+              {previewVideo.includes("youtube.com") || previewVideo.includes("youtu.be") ? (
+                <iframe 
+                  src={previewVideo.includes("v=") ? `https://www.youtube.com/embed/${previewVideo.split("v=")[1]?.split("&")[0]}?autoplay=1` : `https://www.youtube.com/embed/${previewVideo.split("youtu.be/")[1]?.split("?")[0]}?autoplay=1`} 
+                  className="w-full h-full border-none"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={previewVideo} controls autoPlay className="w-full h-full object-contain bg-black" />
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <FeedbackModal 
+        open={feedback.open} 
+        onOpenChange={(open) => setFeedback(prev => ({ ...prev, open }))} 
+        title={feedback.title} 
+        message={feedback.message} 
+        type={feedback.type}
+      />
     </div>
   );
 }
