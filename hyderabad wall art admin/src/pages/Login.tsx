@@ -10,8 +10,8 @@ import { useAuth } from "@/lib/auth";
 export default function Login() {
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin");
-  const [password, setPassword] = useState("1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +36,7 @@ export default function Login() {
       await login(normalized, password);
       navigate("/admin/dashboard");
     } catch {
-      setError("Use admin / 1234.");
+      setError("Invalid username or password.");
     } finally {
       setLoading(false);
     }
