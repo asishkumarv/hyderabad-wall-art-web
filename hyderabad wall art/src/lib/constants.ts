@@ -1,1 +1,1 @@
-export const API_URL = "http://localhost:5000/api";
+export const API_URL = "https://hyderabad-wall-art-web.onrender.com/api";

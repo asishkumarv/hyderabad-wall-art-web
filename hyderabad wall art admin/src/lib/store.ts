@@ -348,6 +348,15 @@ export function useStore() {
       return apiCall(`gallery/${id}`, "PUT", body);
     },
     deleteGalleryImage: (id: string) => apiCall(`gallery/${id}`, "DELETE"),
+    addLead: (lead: any) => apiCall("leads", "POST", {
+      name: lead.name,
+      phone: lead.phone,
+      inquiry: lead.inquiry,
+      source: lead.source || "Direct / Admin",
+      location_tag: lead.locationTag,
+      suggested_location: lead.suggestedLocation,
+      status: lead.status || "new",
+    }),
     updateLead: (id: string, patch: any) => {
       const body: any = {};
       if (patch.name !== undefined) body.name = patch.name;
@@ -360,6 +369,7 @@ export function useStore() {
       if (patch.lastStatusChangeAt !== undefined) body.last_status_change_at = new Date(patch.lastStatusChangeAt).toISOString();
       return apiCall(`leads/${id}`, "PUT", body);
     },
+    deleteLead: (id: string) => apiCall(`leads/${id}`, "DELETE"),
     addBlogPost: (post: any) => apiCall("blogs", "POST", post),
     updateBlogPost: (id: string, patch: any) => apiCall(`blogs/${id}`, "PUT", patch),
     deleteBlogPost: (id: string) => apiCall(`blogs/${id}`, "DELETE"),

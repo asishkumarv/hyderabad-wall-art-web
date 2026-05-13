@@ -77,12 +77,14 @@ type CategoryDraft = { id?: string; name: string; image: string; description: st
 type VideoDraft = { id?: string; title: string; thumbnail: string; videoUrl: string; category: VideoCategory };
 type TestimonialDraft = { id?: string; name: string; rating: number; message: string; image: string };
 type ProfileDraft = { name: string; email: string; role: string; phone: string; avatar: string; accountStatus: string; permissions: string[] };
+type LeadDraft = { name: string; phone: string; inquiry: string; source: string; locationTag: string; status: LeadStatus };
 
 const emptyBlogDraft: BlogDraft = { title: "", category: "Design Tips", excerpt: "", content: "", image: "", gallery_images: [] };
 const emptyCategoryDraft: CategoryDraft = { name: "", image: "", description: "" };
 const emptyVideoDraft: VideoDraft = { title: "", thumbnail: "", videoUrl: "", category: "Home" };
 const emptyTestimonialDraft: TestimonialDraft = { name: "", rating: 5, message: "", image: "" };
 const leadStatuses: LeadStatus[] = ["new", "contacted", "quoted", "won", "lost"];
+const emptyLeadDraft: LeadDraft = { name: "", phone: "", inquiry: "", source: "Admin Entry", locationTag: "", status: "new" };
 const videoCategories: VideoCategory[] = ["Home", "Commercial", "3D Art"];
 
 function formatRelative(hoursAgoMs: number) {
@@ -218,6 +220,8 @@ export default function AdminDashboard() {
     updateAboutPage,
     updateContactPage,
     updateSettings,
+    addLead,
+    deleteLead,
   } = useStore();
   const { theme, toggleTheme } = useThemeMode();
 
@@ -228,6 +232,9 @@ export default function AdminDashboard() {
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(emptyCategoryDraft);
   const [videoDraft, setVideoDraft] = useState<VideoDraft>(emptyVideoDraft);
   const [testimonialDraft, setTestimonialDraft] = useState<TestimonialDraft>(emptyTestimonialDraft);
+  const [leadDraft, setLeadDraft] = useState<LeadDraft>(emptyLeadDraft);
+  const [isAddingLead, setIsAddingLead] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState<ProfileDraft | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<any>(null);
   const [pagesDraft, setPagesDraft] = useState<any>(null);
@@ -235,7 +242,6 @@ export default function AdminDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ open: boolean; title: string; message: string; type: "success" | "error" }>({ open: false, title: "", message: "", type: "success" });
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, any>>({});
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const galleryUploadRef = useRef<HTMLInputElement>(null);
   const blogUploadRef = useRef<HTMLInputElement>(null);
@@ -346,14 +352,20 @@ export default function AdminDashboard() {
     try {
       if (blogDraft.id) await updateBlogPost(blogDraft.id, payload);
       else await addBlogPost(payload);
-      setSuccessInfo({
+      setFeedback({
         open: true,
+        type: "success",
         title: "Success!",
         message: blogDraft.id ? "Your blog post has been updated." : "Your new blog post is now live!"
       });
       setBlogDraft(emptyBlogDraft);
     } catch (err) {
-      toast.error("Failed to save blog post");
+      setFeedback({
+        open: true,
+        type: "error",
+        title: "Save Failed",
+        message: "There was an error saving your blog post. Please try again."
+      });
     } finally {
       setIsSaving(false);
     }
@@ -365,14 +377,20 @@ export default function AdminDashboard() {
     try {
       if (categoryDraft.id) await updateCategory(categoryDraft.id, categoryDraft);
       else await addCategory({ ...categoryDraft, image: categoryDraft.image || "/hwa-wall-bg.jpg" });
-      setSuccessInfo({
+      setFeedback({
         open: true,
+        type: "success",
         title: "Category Saved",
         message: categoryDraft.id ? "The category details have been updated." : "New wallpaper category added successfully."
       });
       setCategoryDraft(emptyCategoryDraft);
     } catch (err) {
-      toast.error("Failed to save category");
+      setFeedback({
+        open: true,
+        type: "error",
+        title: "Save Failed",
+        message: "Failed to save the category. Please check your inputs."
+      });
     } finally {
       setIsSaving(false);
     }
@@ -384,14 +402,20 @@ export default function AdminDashboard() {
     try {
       if (videoDraft.id) await updateVideo(videoDraft.id, { ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
       else await addVideo({ ...videoDraft, thumbnail: videoDraft.thumbnail || "/hwa-wall-bg.jpg" });
-      setSuccessInfo({
+      setFeedback({
         open: true,
+        type: "success",
         title: "Video Published",
         message: videoDraft.id ? "The video information has been updated." : "Your new video is now in the gallery."
       });
       setVideoDraft(emptyVideoDraft);
     } catch (err) {
-      toast.error("Failed to save video");
+      setFeedback({
+        open: true,
+        type: "error",
+        title: "Publish Failed",
+        message: "There was an error publishing the video."
+      });
     } finally {
       setIsSaving(false);
     }
@@ -1746,6 +1770,74 @@ export default function AdminDashboard() {
                 {currentSection === "contacts" && (
                   <div className="space-y-6">
                     <ModuleShell title="Enhanced Lead CRM" description="Track source, Hyderabad area tags, and follow-up reminders for leads older than 24 hours without a status update.">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold tracking-tight text-gold/80">Active Leads</h3>
+                        <Button variant={isAddingLead ? "outline" : "luxury"} size="sm" onClick={() => setIsAddingLead(!isAddingLead)}>
+                          {isAddingLead ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                          {isAddingLead ? "Cancel" : "Add New Lead"}
+                        </Button>
+                      </div>
+
+                      {isAddingLead && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="mb-8 overflow-hidden">
+                          <Card className="border-gold/20 bg-secondary/10">
+                            <CardContent className="pt-6 space-y-4">
+                              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Client Name</label>
+                                  <Input placeholder="John Doe" value={leadDraft.name} onChange={(e) => setLeadDraft({...leadDraft, name: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Phone Number</label>
+                                  <Input placeholder="+91 98765 43210" value={leadDraft.phone} onChange={(e) => setLeadDraft({...leadDraft, phone: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Lead Source</label>
+                                  <Input placeholder="Instagram / Reference" value={leadDraft.source} onChange={(e) => setLeadDraft({...leadDraft, source: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Location Tag</label>
+                                  <Select value={leadDraft.locationTag} onValueChange={(v) => setLeadDraft({...leadDraft, locationTag: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Select Area" /></SelectTrigger>
+                                    <SelectContent>{hyderabadAreas.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Initial Status</label>
+                                  <Select value={leadDraft.status} onValueChange={(v: LeadStatus) => setLeadDraft({...leadDraft, status: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Initial Status" /></SelectTrigger>
+                                    <SelectContent>{leadStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Inquiry Details</label>
+                                <Textarea placeholder="What is the customer looking for?" className="min-h-[100px]" value={leadDraft.inquiry} onChange={(e) => setLeadDraft({...leadDraft, inquiry: e.target.value})} />
+                              </div>
+                              <div className="flex justify-end gap-3 pt-2">
+                                <Button variant="ghost" size="sm" onClick={() => { setLeadDraft(emptyLeadDraft); setIsAddingLead(false); }}>Discard</Button>
+                                <Button variant="luxury" size="sm" disabled={!leadDraft.name || !leadDraft.phone || isSaving} onClick={async () => {
+                                  setIsSaving(true);
+                                  try {
+                                    await addLead(leadDraft);
+                                    setLeadDraft(emptyLeadDraft);
+                                    setIsAddingLead(false);
+                                    setFeedback({ open: true, type: "success", title: "Lead Recorded", message: "The new lead has been successfully added to your CRM." });
+                                  } catch (err) {
+                                    setFeedback({ open: true, type: "error", title: "Submission Failed", message: "There was an error saving the lead. Please try again." });
+                                  } finally {
+                                    setIsSaving(false);
+                                  }
+                                }}>
+                                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                                  Confirm & Save Lead
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      )}
+
                       <div className="overflow-hidden rounded-3xl border border-border/70">
                         <Table>
                           <TableHeader>
@@ -1755,6 +1847,7 @@ export default function AdminDashboard() {
                               <TableHead>Location</TableHead>
                               <TableHead>Status</TableHead>
                               <TableHead>Reminder</TableHead>
+                              <TableHead className="w-16 text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1804,6 +1897,20 @@ export default function AdminDashboard() {
                                         <p className="text-xs text-muted-foreground">{formatRelative(Date.now() - lead.lastStatusChangeAt)}</p>
                                       </div>
                                     </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-50 hover:opacity-100 transition-opacity" onClick={async () => {
+                                      if (confirm("Are you sure you want to delete this lead?")) {
+                                        try {
+                                          await deleteLead(lead.id);
+                                          setFeedback({ open: true, type: "success", title: "Lead Deleted", message: "Record has been removed from CRM." });
+                                        } catch (err) {
+                                          setFeedback({ open: true, type: "error", title: "Error", message: "Failed to delete lead." });
+                                        }
+                                      }
+                                    }}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               );
