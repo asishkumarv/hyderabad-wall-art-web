@@ -94,17 +94,20 @@ function Index() {
   const offerImages = [livingRoomImg, hotelImg, muralImg, threeDImg];
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide((p) => (p + 1) % heroSlides.length), 5000);
+    setCurrentSlide(0);
+    const timer = setInterval(() => setCurrentSlide((p) => (p + 1) % (heroSlides.length || 1)), 5000);
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentReview((p) => (p + 1) % reviews.length), 4000);
+    setCurrentReview(0);
+    const timer = setInterval(() => setCurrentReview((p) => (p + 1) % (reviews.length || 1)), 4000);
     return () => clearInterval(timer);
   }, [reviews.length]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentOfferImg((p) => (p + 1) % offerImages.length), 3000);
+    setCurrentOfferImg(0);
+    const timer = setInterval(() => setCurrentOfferImg((p) => (p + 1) % (offerImages.length || 1)), 3000);
     return () => clearInterval(timer);
   }, [offerImages.length]);
 
@@ -123,7 +126,7 @@ function Index() {
             transition={{ duration: 1 }}
             className="absolute inset-0"
           >
-            <img src={heroSlides[currentSlide].image} alt="Wall art showcase" className="w-full h-full object-cover" width={1920} height={1080} />
+            <img src={heroSlides[currentSlide % heroSlides.length]?.image} alt="Wall art showcase" className="w-full h-full object-cover" width={1920} height={1080} />
             <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/70 to-primary/30" />
           </motion.div>
         </AnimatePresence>
@@ -146,7 +149,7 @@ function Index() {
                 Since 2000 • Premium Wall Art
               </motion.span>
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight whitespace-pre-line">
-                {heroSlides[currentSlide].heading.split("\n").map((line, i) => (
+                {(heroSlides[currentSlide % heroSlides.length]?.heading || "").split("\n").map((line, i) => (
                   <span key={i}>
                     {i === 1 ? <span className="text-gold">{line}</span> : line}
                     {i === 0 && <br />}
@@ -154,7 +157,7 @@ function Index() {
                 ))}
               </h1>
               <p className="mt-6 text-lg text-white/80 max-w-xl leading-relaxed">
-                {heroSlides[currentSlide].sub}
+                {heroSlides[currentSlide % heroSlides.length]?.sub}
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
@@ -349,20 +352,20 @@ function Index() {
                 transition={{ duration: 0.5 }}
               >
                 <div className="flex gap-1 mb-4">
-                  {Array.from({ length: reviews[currentReview].rating }).map((_, j) => (
+                  {Array.from({ length: reviews[currentReview % reviews.length]?.rating || 5 }).map((_, j) => (
                     <svg key={j} className="w-5 h-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>
                 <p className="text-foreground text-lg md:text-xl italic leading-relaxed mb-6">
-                  "{reviews[currentReview].text}"
+                  "{reviews[currentReview % reviews.length]?.text}"
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold">
-                    {reviews[currentReview].avatar}
+                    {reviews[currentReview % reviews.length]?.avatar}
                   </div>
-                  <p className="font-heading font-bold text-primary">{reviews[currentReview].name}</p>
+                  <p className="font-heading font-bold text-primary">{reviews[currentReview % reviews.length]?.name}</p>
                 </div>
               </motion.div>
             </AnimatePresence>

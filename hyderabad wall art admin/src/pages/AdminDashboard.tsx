@@ -222,6 +222,7 @@ export default function AdminDashboard() {
     updateSettings,
     addLead,
     deleteLead,
+    isLoading,
   } = useStore();
   const { theme, toggleTheme } = useThemeMode();
 
@@ -306,7 +307,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (user && !profileDraft) {
+    if (!isLoading && user && !profileDraft) {
       setProfileDraft({
         name: user.name,
         email: user.email,
@@ -317,29 +318,29 @@ export default function AdminDashboard() {
         permissions: user.permissions
       });
     }
-  }, [user, profileDraft]);
+  }, [isLoading, user, profileDraft]);
 
   useEffect(() => {
-    if (settings && !settingsDraft) {
+    if (!isLoading && settings && !settingsDraft) {
       setSettingsDraft({ ...settings });
     }
-  }, [settings, settingsDraft]);
+  }, [isLoading, settings, settingsDraft]);
 
   useEffect(() => {
-    if (pages && !pagesDraft) {
+    if (!isLoading && pages && !pagesDraft) {
       setPagesDraft({ ...pages });
     }
-  }, [pages, pagesDraft]);
+  }, [isLoading, pages, pagesDraft]);
 
   useEffect(() => {
-    if (services.length > 0 && Object.keys(serviceDrafts).length === 0) {
+    if (!isLoading && services.length > 0 && Object.keys(serviceDrafts).length === 0) {
       const drafts: Record<string, any> = {};
       services.forEach(s => {
         drafts[s.key] = { ...s };
       });
       setServiceDrafts(drafts);
     }
-  }, [services, serviceDrafts]);
+  }, [isLoading, services, serviceDrafts]);
 
   const saveBlogDraft = async () => {
     if (!blogDraft.title.trim() || !blogDraft.content.trim()) return;

@@ -167,6 +167,7 @@ export function useStore() {
     activities: ActivityRecord[];
     pages: SitePages;
     settings: SiteSettings;
+    isLoading: boolean;
   }>({
     services: [],
     gallery: [],
@@ -191,6 +192,7 @@ export function useStore() {
       instagramUrl: "",
       officeAddress: "",
     },
+    isLoading: true,
   });
 
   const fetchData = useCallback(async () => {
@@ -266,9 +268,11 @@ export function useStore() {
           instagramUrl: settings.instagram_url,
           officeAddress: settings.office_address,
         } : data.settings,
+        isLoading: false,
       });
     } catch (err) {
       console.error("Failed to fetch store data:", err);
+      setData(prev => ({ ...prev, isLoading: false }));
     }
   }, [token]);
 
