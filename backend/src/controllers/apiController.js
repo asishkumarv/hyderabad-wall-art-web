@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { processMediaFields } = require('../utils/cloudinary');
 
 // Generic CRUD factory
 const getAll = (table) => async (req, res) => {
@@ -13,9 +14,10 @@ const getAll = (table) => async (req, res) => {
 
 const create = (table, fields) => async (req, res) => {
   try {
+    const processedBody = await processMediaFields(req.body, table);
     const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
     const columns = fields.join(', ');
-    const values = fields.map(field => req.body[field]);
+    const values = fields.map(field => processedBody[field]);
     
     const result = await query(
       `INSERT INTO ${table} (${columns}) VALUES (${placeholders}) RETURNING *`,
@@ -31,18 +33,19 @@ const create = (table, fields) => async (req, res) => {
 
 const update = (table, idField = 'id') => async (req, res) => {
   const id = req.params.id || req.params.key;
-  const updates = { ...req.body };
-  delete updates.id;
-  delete updates.created_at;
-  delete updates.updated_at;
-  
-  const fields = Object.keys(updates);
-  
-  if (fields.length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
-  }
-
   try {
+    const processedBody = await processMediaFields(req.body, table);
+    const updates = { ...processedBody };
+    delete updates.id;
+    delete updates.created_at;
+    delete updates.updated_at;
+    
+    const fields = Object.keys(updates);
+    
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     const setClause = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
     const values = [...fields.map(field => updates[field]), id];
     
@@ -90,14 +93,15 @@ exports.getServices = async (req, res) => {
 
 exports.updateService = async (req, res) => {
   const { key } = req.params;
-  const updates = req.body;
-  const fields = Object.keys(updates);
-  
-  if (fields.length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
-  }
-
   try {
+    const processedBody = await processMediaFields(req.body, 'services');
+    const updates = processedBody;
+    const fields = Object.keys(updates);
+    
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     // Check if service exists first to decide between INSERT or UPDATE, or just use UPSERT syntax
     // We'll use UPSERT with default values for required fields if they aren't provided
     const columns = ['key', ...fields];
@@ -140,8 +144,9 @@ exports.getPages = async (req, res) => {
 
 exports.updatePage = async (req, res) => {
   const { page_name } = req.params;
-  const { content } = req.body;
   try {
+    const processedBody = await processMediaFields(req.body, 'pages');
+    const { content } = processedBody;
     const result = await query(
       'INSERT INTO pages (page_name, content) VALUES ($1, $2) ON CONFLICT (page_name) DO UPDATE SET content = $2, updated_at = NOW() RETURNING *',
       [page_name, typeof content === 'object' ? JSON.stringify(content) : content]
@@ -164,14 +169,15 @@ exports.getSettings = async (req, res) => {
 };
 
 exports.updateSettings = async (req, res) => {
-  const updates = req.body;
-  const fields = Object.keys(updates);
-  
-  if (fields.length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
-  }
-
   try {
+    const processedBody = await processMediaFields(req.body, 'settings');
+    const updates = processedBody;
+    const fields = Object.keys(updates);
+    
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     const setClause = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
     const values = fields.map(field => {
       const val = updates[field];

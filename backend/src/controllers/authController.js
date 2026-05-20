@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/db');
+const { processMediaFields } = require('../utils/cloudinary');
 require('dotenv').config();
 
 const transformUser = (user) => {
@@ -56,26 +57,27 @@ exports.getMe = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-  const updates = { ...req.body };
-  // Sanitize updates
-  delete updates.id;
-  delete updates.password;
-  delete updates.role;
-  delete updates.created_at;
-  delete updates.updated_at;
-  
-  // Map camelCase to snake_case for database
-  if (updates.accountStatus) {
-    updates.account_status = updates.accountStatus;
-    delete updates.accountStatus;
-  }
-
-  const fields = Object.keys(updates);
-  if (fields.length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
-  }
-
   try {
+    const processedBody = await processMediaFields(req.body, 'users');
+    const updates = { ...processedBody };
+    // Sanitize updates
+    delete updates.id;
+    delete updates.password;
+    delete updates.role;
+    delete updates.created_at;
+    delete updates.updated_at;
+    
+    // Map camelCase to snake_case for database
+    if (updates.accountStatus) {
+      updates.account_status = updates.accountStatus;
+      delete updates.accountStatus;
+    }
+
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     const setClause = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
     const values = [...fields.map(field => updates[field]), req.user.id];
     
