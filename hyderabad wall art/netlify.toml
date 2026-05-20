@@ -1,5 +1,4 @@
 [build]
-  base = "hyderabad wall art"
   command = "npm run build"
   publish = "dist/client"
 

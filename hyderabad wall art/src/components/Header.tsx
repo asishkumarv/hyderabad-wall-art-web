@@ -32,7 +32,7 @@ export default function Header() {
     services.forEach(service => {
       if (service.key === "wallpaper") return;
       
-      const item = { label: service.title, to: `/wall-art-services/${service.key}` };
+      const item = { label: service.label, to: `/wall-art-services/${service.key}` };
       
       if (service.category?.toLowerCase().includes("commercial")) {
         categories["Commercial Wall Art"].push(item);

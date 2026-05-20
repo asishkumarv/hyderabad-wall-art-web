@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { API_URL } from "./constants";
 import { useAuth } from "./auth";
 
-export type ServiceKey = "commercial" | "home" | "mural" | "stencil";
+export type ServiceKey = string;
 export type ServiceContent = {
   key: ServiceKey;
   label: string;
