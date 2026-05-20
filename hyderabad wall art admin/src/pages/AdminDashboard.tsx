@@ -468,7 +468,7 @@ export default function AdminDashboard() {
               <Card className="panel-luxury bg-canvas-texture">
                 <CardContent className="space-y-2 p-4">
                   <p className="text-sm text-muted-foreground">Global WhatsApp</p>
-                  <p className="text-lg font-semibold tracking-tight">{settings.whatsappNumber}</p>
+                  <p className="text-lg font-semibold tracking-tight">8121341742</p>
                 </CardContent>
               </Card>
               <Button asChild variant="glass" className="w-full justify-center">
@@ -509,7 +509,7 @@ export default function AdminDashboard() {
                       <Card className="mt-6 panel-luxury bg-canvas-texture">
                         <CardContent className="space-y-2 p-4">
                           <p className="text-sm text-muted-foreground">Global WhatsApp</p>
-                          <p className="text-lg font-semibold tracking-tight">{settings.whatsappNumber}</p>
+                          <p className="text-lg font-semibold tracking-tight">8121341742</p>
                         </CardContent>
                       </Card>
                       <div className="mt-auto space-y-3 border-t border-border/70 pt-5">

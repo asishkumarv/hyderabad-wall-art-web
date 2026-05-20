@@ -1,6 +1,8 @@
-@import "tailwindcss" source(none);
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,7 +55,6 @@
   --font-body: var(--font-body);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
   --radius: 0.75rem;

@@ -36,9 +36,9 @@ export function PublicSite() {
   const filteredWallpaperCategories = activeWallpaperFilter === "All"
     ? categories
     : categories.filter((category) => category.name === activeWallpaperFilter);
-  const heroTitle = selectedServiceKey === "home" ? pages.home.heroTitle || selectedService.heroTitle : selectedService.heroTitle;
+  const heroTitle = selectedServiceKey === "home" ? pages.home.heroSlides[0]?.title || selectedService.heroTitle : selectedService.heroTitle;
   const heroImage = selectedServiceKey === "home"
-    ? pages.home.heroImages[0] || selectedService.images[0] || "/hwa-wall-bg.jpg"
+    ? pages.home.heroSlides[0]?.image || selectedService.images[0] || "/hwa-wall-bg.jpg"
     : selectedService.images[0] || "/hwa-wall-bg.jpg";
   const visibleVideos = useMemo(
     () => videos.slice(0, 3),

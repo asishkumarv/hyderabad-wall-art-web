@@ -7,10 +7,12 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import netlify from "@netlify/vite-plugin-tanstack-start";
 
+const isNetlify = process.env.NETLIFY === "true" || process.argv.includes("build");
+
 export default defineConfig({
   vite: {
     plugins: [
-      netlify()
-    ]
+      isNetlify ? netlify() : null
+    ].filter(Boolean)
   }
 });

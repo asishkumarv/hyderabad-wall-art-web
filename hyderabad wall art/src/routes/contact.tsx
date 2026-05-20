@@ -152,7 +152,7 @@ function ContactPage() {
 
               {/* WhatsApp Quick Connect */}
               <a
-                href={`https://wa.me/${contact.whatsapp.replace(/\+/g, "") || "919876543210"}`}
+                href={`https://wa.me/918121341742`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 p-5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-colors"
