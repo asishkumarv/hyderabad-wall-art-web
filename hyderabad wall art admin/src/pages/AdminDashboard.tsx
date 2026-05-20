@@ -46,6 +46,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
+import { uploadToCloudinary, uploadManyToCloudinary } from "@/lib/cloudinary";
 import { renderRichText } from "@/lib/rich-text";
 import {
   useStore,
@@ -140,14 +141,7 @@ function ModuleShell({ title, description, children }: { title: string; descript
   );
 }
 
-async function fileToDataUrl(file: File) {
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Unable to read file"));
-    reader.readAsDataURL(file);
-  });
-}
+
 
 function SidebarNav({ currentSection, onNavigate }: { currentSection: SectionKey; onNavigate?: () => void }) {
   const navigate = useNavigate();
@@ -273,16 +267,26 @@ export default function AdminDashboard() {
     { label: "Contacts", value: contacts.length, helper: "Stored in localStorage" },
   ];
 
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleGalleryUpload = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    const imageUrl = await fileToDataUrl(file);
-    addGalleryImage({
-      title: file.name.replace(/\.[^.]+$/, ""),
-      category: galleryFilter === "All" ? "Living Room" : galleryFilter,
-      altText: `Wall art installation in ${hyderabadAreas[0]}`,
-      imageUrl,
-    });
+    setIsUploading(true);
+    try {
+      const imageUrl = await uploadToCloudinary(file, "image");
+      addGalleryImage({
+        title: file.name.replace(/\.[^.]+$/, ""),
+        category: galleryFilter === "All" ? "Living Room" : galleryFilter,
+        altText: `Wall art installation in ${hyderabadAreas[0]}`,
+        imageUrl,
+      });
+      toast.success("Image uploaded to Cloudinary");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
@@ -291,19 +295,44 @@ export default function AdminDashboard() {
     await handleGalleryUpload(event.dataTransfer.files);
   };
 
-  const handleSingleUpload = async (event: ChangeEvent<HTMLInputElement>, onDone: (value: string) => void) => {
+  const handleSingleUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    onDone: (value: string) => void,
+    resourceType: "image" | "video" | "auto" = "auto"
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    onDone(await fileToDataUrl(file));
-    (event.target as HTMLInputElement).value = "";
+    setIsUploading(true);
+    try {
+      const url = await uploadToCloudinary(file, resourceType);
+      onDone(url);
+      toast.success("Uploaded to Cloudinary");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setIsUploading(false);
+      (event.target as HTMLInputElement).value = "";
+    }
   };
 
-  const handleMultipleUpload = async (event: ChangeEvent<HTMLInputElement>, onDone: (values: string[]) => void) => {
+  const handleMultipleUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    onDone: (values: string[]) => void,
+    resourceType: "image" | "video" | "auto" = "image"
+  ) => {
     const files = event.target.files;
     if (!files) return;
-    const urls = await Promise.all(Array.from(files).map(f => fileToDataUrl(f)));
-    onDone(urls);
-    (event.target as HTMLInputElement).value = "";
+    setIsUploading(true);
+    try {
+      const urls = await uploadManyToCloudinary(files, resourceType);
+      onDone(urls);
+      toast.success(`${urls.length} file(s) uploaded to Cloudinary`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setIsUploading(false);
+      (event.target as HTMLInputElement).value = "";
+    }
   };
 
   useEffect(() => {
@@ -453,6 +482,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
+      {/* Cloudinary Upload Overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 bg-card px-10 py-8 shadow-elevated">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-lg font-semibold tracking-tight">Uploading to Cloudinary…</p>
+            <p className="text-sm text-muted-foreground">Please wait, your file is being uploaded</p>
+          </div>
+        </div>
+      )}
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-border/70 bg-card/70 backdrop-blur-xl lg:block">
           <div className="admin-scroll sticky top-0 flex h-screen flex-col overflow-y-auto overflow-x-hidden px-5 py-6">
@@ -1235,13 +1274,9 @@ export default function AdminDashboard() {
                             type="file" 
                             accept="video/*" 
                             className="hidden" 
-                            onChange={async (event) => {
-                              const file = event.target.files?.[0];
-                              if (!file) return;
-                              const url = await fileToDataUrl(file);
-                              setVideoDraft((draft) => ({ ...draft, videoUrl: url }));
-                              (event.target as HTMLInputElement).value = "";
-                            }} 
+                            onChange={async (event) => 
+                              handleSingleUpload(event, (url) => setVideoDraft((draft) => ({ ...draft, videoUrl: url })), "video")
+                            } 
                           />
                         </div>
                         <Select value={videoDraft.category} onValueChange={(value: VideoCategory) => setVideoDraft((draft) => ({ ...draft, category: value }))}>
@@ -1367,9 +1402,17 @@ export default function AdminDashboard() {
                              <input ref={homeUploadRef} type="file" accept="image/*" className="hidden" onChange={async (event) => {
                                const file = event.target.files?.[0];
                                if (!file) return;
-                               const url = await fileToDataUrl(file);
-                               setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: [...(pagesDraft.home.heroSlides || []), { image: url, title: "Artistic Excellence", subtitle: "Transforming spaces since 2000" }] } });
-                               (event.target as HTMLInputElement).value = "";
+                               setIsUploading(true);
+                               try {
+                                 const url = await uploadToCloudinary(file, "image");
+                                 setPagesDraft({ ...pagesDraft, home: { ...pagesDraft.home, heroSlides: [...(pagesDraft.home.heroSlides || []), { image: url, title: "Artistic Excellence", subtitle: "Transforming spaces since 2000" }] } });
+                                 toast.success("Slide image uploaded to Cloudinary");
+                               } catch (err: any) {
+                                 toast.error(err?.message ?? "Upload failed");
+                               } finally {
+                                 setIsUploading(false);
+                                 (event.target as HTMLInputElement).value = "";
+                               }
                              }} />
                           </div>
                           

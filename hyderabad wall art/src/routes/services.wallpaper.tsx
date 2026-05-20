@@ -3,9 +3,6 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import SectionHeading from "@/components/SectionHeading";
 import wallpaperImg from "@/assets/service-wallpaper.jpg";
-import livingRoomImg from "@/assets/service-living-room.jpg";
-import bedroomImg from "@/assets/service-bedroom.jpg";
-import kidsRoomImg from "@/assets/service-kids-room.jpg";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/services/wallpaper")({
@@ -39,16 +36,7 @@ function WallpaperPage() {
 
   const wallpapers = apiCategories.length > 0
     ? apiCategories.flatMap((c: any) => [{ title: c.name, category: c.id, image: c.image, desc: c.description }])
-    : [
-        { title: "Modern Geometric", category: "modern", image: wallpaperImg, desc: "Clean geometric patterns for contemporary spaces" },
-        { title: "Abstract Waves", category: "abstract", image: livingRoomImg, desc: "Flowing abstract designs with vibrant colors" },
-        { title: "Cartoon Paradise", category: "kids", image: kidsRoomImg, desc: "Fun cartoon themes for children's rooms" },
-        { title: "Tropical Forest", category: "nature", image: wallpaperImg, desc: "Lush tropical greenery and botanicals" },
-        { title: "Minimalist Lines", category: "modern", image: bedroomImg, desc: "Subtle line art for elegant interiors" },
-        { title: "Floral Fantasy", category: "nature", image: livingRoomImg, desc: "Beautiful floral patterns in soft colors" },
-        { title: "Space Adventure", category: "kids", image: kidsRoomImg, desc: "Galaxy and space-themed designs for kids" },
-        { title: "Marble Texture", category: "abstract", image: wallpaperImg, desc: "Premium marble-effect wallpaper" },
-      ];
+    : [];
 
   const filtered = activeFilter === "all" ? wallpapers : wallpapers.filter((w: any) => w.category === activeFilter);
 

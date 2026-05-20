@@ -15,6 +15,47 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
+const HWA_DEFAULT_MAP_EMBED =
+  "https://maps.app.goo.gl/okdzxvqdc1Je66Kw6";
+
+function getMapEmbedUrl(value: string) {
+  if (!value) {
+    return HWA_DEFAULT_MAP_EMBED;
+  }
+
+  // 1. If it's a full iframe HTML tag, extract the src
+  if (value.includes("<iframe")) {
+    const srcMatch = value.match(/src="([^"]+)"/);
+    if (srcMatch && srcMatch[1]) {
+      return srcMatch[1];
+    }
+  }
+
+  // 2. If it's already an embed URL, return it
+  if (value.includes("output=embed") || value.includes("/maps/embed") || value.includes("pb=")) {
+    return value;
+  }
+
+  // 3. If it's a standard share / place URL, extract coordinates or place name
+  const placeMatch = value.match(/\/maps\/place\/([^/]+)/);
+  const coordMatch = value.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+  if (placeMatch && coordMatch) {
+    return `https://maps.google.com/maps?q=${placeMatch[1]}&ll=${coordMatch[1]},${coordMatch[2]}&z=17&output=embed`;
+  }
+
+  if (placeMatch) {
+    return `https://maps.google.com/maps?q=${placeMatch[1]}&z=17&output=embed`;
+  }
+
+  if (coordMatch) {
+    return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&ll=${coordMatch[1]},${coordMatch[2]}&z=17&output=embed`;
+  }
+
+  // 4. Default fallback: wrap search query
+  return `https://maps.google.com/maps?q=${encodeURIComponent(value)}&z=17&output=embed`;
+}
+
 function ContactPage() {
   const { pages, settings, submitContact, isLoading } = useStore();
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", service: "", message: "" });
@@ -171,7 +212,7 @@ function ContactPage() {
               {/* Map */}
               <div className="rounded-2xl overflow-hidden border border-border h-64 bg-muted">
                 <iframe
-                  src={contact.mapEmbed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d243647.3170694512!2d78.24323004062592!3d17.412608639498044!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb99daeaebd2c7%3A0xae93b78392bafbc2!2sHyderabad%2C%20Telangana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"}
+                  src={getMapEmbedUrl(contact.mapEmbed)}
                   className="w-full h-full border-0"
                   allowFullScreen
                   loading="lazy"

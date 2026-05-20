@@ -27,10 +27,7 @@ function VideosPage() {
   const [openVideo, setOpenVideo] = useState<string | null>(null);
   const { videos: apiVideos, isLoading } = useStore();
 
-  const videos = apiVideos.length > 0 ? apiVideos : [
-    { title: "Living Room Mural Transformation", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnail: livingRoomImg, category: "Home" },
-    { title: "Hotel Lobby Art Installation", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnail: hotelImg, category: "Commercial" },
-  ];
+  const videos = apiVideos.length > 0 ? apiVideos : [];
 
   const getEmbedUrl = (url: string) => {
     if (url.includes("youtube.com/watch?v=")) {
