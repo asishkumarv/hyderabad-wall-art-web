@@ -167,15 +167,51 @@ export function useStore() {
       const [services, gallery, blogs, categories, videos, testimonials, pages, settings] = results;
 
       setData({
-        services: Array.isArray(services) ? services.map((s: any) => ({
-          ...s,
-          heroTitle: s.hero_title,
-          heroSubtitle: s.hero_subtitle,
-          whyChooseUs: s.why_choose_us || [],
-          isActive: s.is_active,
-          benefits: s.benefits || [],
-          relatedServices: s.related_services || [],
-        })) : [],
+        services: Array.isArray(services) ? services.map((s: any) => {
+          let benefits = [];
+          if (Array.isArray(s.benefits)) {
+            benefits = s.benefits;
+          } else if (typeof s.benefits === "string" && s.benefits.trim()) {
+            try {
+              benefits = JSON.parse(s.benefits);
+            } catch (e) {
+              console.error("Failed to parse benefits:", e);
+            }
+          }
+
+          let relatedServices = [];
+          if (Array.isArray(s.related_services)) {
+            relatedServices = s.related_services;
+          } else if (typeof s.related_services === "string" && s.related_services.trim()) {
+            try {
+              relatedServices = JSON.parse(s.related_services);
+            } catch (e) {
+              console.error("Failed to parse related_services:", e);
+            }
+          }
+
+          let whyChooseUs = [];
+          if (Array.isArray(s.why_choose_us)) {
+            whyChooseUs = s.why_choose_us;
+          } else if (typeof s.why_choose_us === "string" && s.why_choose_us.trim()) {
+            try {
+              whyChooseUs = JSON.parse(s.why_choose_us);
+            } catch (e) {
+              console.error("Failed to parse why_choose_us:", e);
+            }
+          }
+
+          return {
+            ...s,
+            heroTitle: s.hero_title,
+            heroSubtitle: s.hero_subtitle,
+            whyChooseUs,
+            isActive: s.is_active,
+            images: s.images || [],
+            benefits,
+            relatedServices,
+          };
+        }) : [],
         gallery: Array.isArray(gallery) ? gallery.map((g: any) => ({
           ...g,
           altText: g.alt_text,

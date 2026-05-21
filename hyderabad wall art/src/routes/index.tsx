@@ -65,7 +65,7 @@ function Index() {
         return {
           title: s.label,
           desc: s.heroSubtitle,
-          image: s.images[0] || livingRoomImg,
+          image: s.images?.[0] || livingRoomImg,
           to: to as any,
           params
         };

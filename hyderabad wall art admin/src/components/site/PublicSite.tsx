@@ -23,27 +23,42 @@ function cleanWhatsappNumber(value: string) {
 
 export function PublicSite() {
   const location = useLocation();
-  const { services, gallery, blogPosts, settings, categories, videos, testimonials, pages } = useStore();
+  const { services, gallery, blogPosts, settings, categories, videos, testimonials, pages, isLoading } = useStore();
   const [activeWallpaperFilter, setActiveWallpaperFilter] = useState("All");
+
   const selectedServiceKey = serviceRouteMap[location.pathname] ?? "home";
   const activeServices = serviceOrder
     .map((key) => services.find((service) => service.key === key))
     .filter((service): service is NonNullable<typeof service> => Boolean(service && service.isActive));
   const selectedService = services.find((service) => service.key === selectedServiceKey) ?? activeServices[0] ?? services[0];
+
   const whatsappUrl = `https://wa.me/${cleanWhatsappNumber(settings.whatsappNumber)}`;
   const galleryCategories = ["All", ...new Set(gallery.map((image) => image.category))];
   const wallpaperFilters = ["All", ...categories.map((category) => category.name)];
   const filteredWallpaperCategories = activeWallpaperFilter === "All"
     ? categories
     : categories.filter((category) => category.name === activeWallpaperFilter);
-  const heroTitle = selectedServiceKey === "home" ? pages.home.heroSlides[0]?.title || selectedService.heroTitle : selectedService.heroTitle;
-  const heroImage = selectedServiceKey === "home"
-    ? pages.home.heroSlides[0]?.image || selectedService.images[0] || "/hwa-wall-bg.jpg"
-    : selectedService.images[0] || "/hwa-wall-bg.jpg";
+
   const visibleVideos = useMemo(
     () => videos.slice(0, 3),
     [videos],
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <div className="text-center space-y-4">
+          <PaintBucket className="h-10 w-10 text-primary animate-bounce mx-auto" />
+          <p className="text-muted-foreground animate-pulse font-medium">Loading content...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const heroTitle = selectedServiceKey === "home" ? pages.home.heroSlides[0]?.title || selectedService?.heroTitle : selectedService?.heroTitle;
+  const heroImage = selectedServiceKey === "home"
+    ? pages.home.heroSlides[0]?.image || selectedService?.images?.[0] || "/hwa-wall-bg.jpg"
+    : selectedService?.images?.[0] || "/hwa-wall-bg.jpg";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,7 +73,7 @@ export function PublicSite() {
           </Link>
           <div className="hidden items-center gap-2 md:flex">
             {activeServices.map((service) => (
-              <Button key={service.key} asChild variant={selectedService.key === service.key ? "luxury" : "ghost"} size="sm">
+              <Button key={service.key} asChild variant={selectedService?.key === service.key ? "luxury" : "ghost"} size="sm">
                 <Link to={service.key === "home" ? "/" : `/${service.key}`}>{service.label}</Link>
               </Button>
             ))}
@@ -83,7 +98,7 @@ export function PublicSite() {
               <Badge variant="secondary" className="rounded-full border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">Hyderabad’s premium wall art studio</Badge>
               <div className="space-y-5">
                 <h1 className="max-w-3xl text-balance text-5xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">{heroTitle}</h1>
-                <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">{selectedService.heroSubtitle}</p>
+                <p className="max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">{selectedService?.heroSubtitle}</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="luxury" size="lg"><a href={whatsappUrl} target="_blank" rel="noreferrer">Book a consultation <ArrowRight className="h-4 w-4" /></a></Button>
@@ -99,10 +114,10 @@ export function PublicSite() {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7 }} className="relative">
               <div className="pointer-events-none absolute inset-0 translate-x-4 translate-y-4 rounded-[2rem] border border-primary/15 bg-primary/10 blur-2xl" />
               <div className="signature-tilt relative overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-elevated">
-                <img src={heroImage} alt={`${selectedService.label} wall art showcase in Hyderabad`} className="aspect-[4/5] h-full w-full object-cover" />
+                <img src={heroImage} alt={`${selectedService?.label || "Service"} wall art showcase in Hyderabad`} className="aspect-[4/5] h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6">
-                  <Card className="panel-luxury backdrop-blur-xl"><CardContent className="grid gap-4 p-5 sm:grid-cols-[1fr_auto] sm:items-end"><div><p className="text-sm text-muted-foreground">Currently highlighted</p><p className="mt-1 text-2xl font-semibold tracking-tight">{selectedService.label}</p></div><div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4 text-primary" /> Hyderabad, Telangana</div></CardContent></Card>
+                  <Card className="panel-luxury backdrop-blur-xl"><CardContent className="grid gap-4 p-5 sm:grid-cols-[1fr_auto] sm:items-end"><div><p className="text-sm text-muted-foreground">Currently highlighted</p><p className="mt-1 text-2xl font-semibold tracking-tight">{selectedService?.label}</p></div><div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4 text-primary" /> Hyderabad, Telangana</div></CardContent></Card>
                 </div>
               </div>
             </motion.div>
@@ -165,7 +180,7 @@ export function PublicSite() {
 
         <section className="border-b border-border/70 py-16">
           <div className="container grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
-            <Card className="panel-luxury h-fit"><CardContent className="space-y-6 p-6"><div><p className="text-sm font-medium uppercase tracking-[0.24em] text-primary">Why choose us</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">{selectedService.label} expertise, tuned by live admin copy</h2></div><div className="space-y-4">{selectedService.whyChooseUs.map((point, index) => <div key={`${point}-${index}`} className="flex gap-3"><div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary"><Star className="h-4 w-4" /></div><p className="text-sm leading-7 text-muted-foreground">{point}</p></div>)}</div></CardContent></Card>
+            <Card className="panel-luxury h-fit"><CardContent className="space-y-6 p-6"><div><p className="text-sm font-medium uppercase tracking-[0.24em] text-primary">Why choose us</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">{selectedService?.label || "Service"} expertise, tuned by live admin copy</h2></div><div className="space-y-4">{(selectedService?.whyChooseUs || []).map((point, index) => <div key={`${point}-${index}`} className="flex gap-3"><div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary"><Star className="h-4 w-4" /></div><p className="text-sm leading-7 text-muted-foreground">{point}</p></div>)}</div></CardContent></Card>
             <div className="grid gap-4 sm:grid-cols-2">{gallery.slice(0, 4).map((image) => <Card key={image.id} className="panel-luxury panel-hover overflow-hidden"><div className="aspect-[4/3] overflow-hidden"><img src={image.imageUrl} alt={image.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]" /></div><CardContent className="space-y-2 p-5"><div className="flex items-center justify-between gap-2"><p className="font-medium tracking-tight">{image.title}</p><Badge variant="outline">{image.category}</Badge></div><p className="text-sm text-muted-foreground">{image.altText}</p></CardContent></Card>)}</div>
           </div>
         </section>

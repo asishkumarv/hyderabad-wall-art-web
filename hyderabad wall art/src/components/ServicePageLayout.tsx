@@ -25,9 +25,9 @@ export default function ServicePageLayout({ serviceKey, ...props }: ServicePageL
   const subtitle = dynamicService?.label || props.subtitle;
   const description = dynamicService?.description || props.description;
   const image = dynamicService?.images?.[0] || props.image;
-  const benefits = (dynamicService?.benefits && dynamicService.benefits.length > 0) ? dynamicService.benefits : props.benefits;
-  const whyChoose = (dynamicService?.whyChooseUs && dynamicService.whyChooseUs.length > 0) ? dynamicService.whyChooseUs : props.whyChoose;
-  const relatedServices = (dynamicService?.relatedServices && dynamicService.relatedServices.length > 0) ? dynamicService.relatedServices : props.relatedServices;
+  const benefits = (dynamicService?.benefits && Array.isArray(dynamicService.benefits) && dynamicService.benefits.length > 0) ? dynamicService.benefits : (Array.isArray(props.benefits) ? props.benefits : []);
+  const whyChoose = (dynamicService?.whyChooseUs && Array.isArray(dynamicService.whyChooseUs) && dynamicService.whyChooseUs.length > 0) ? dynamicService.whyChooseUs : (Array.isArray(props.whyChoose) ? props.whyChoose : []);
+  const relatedServices = (dynamicService?.relatedServices && Array.isArray(dynamicService.relatedServices) && dynamicService.relatedServices.length > 0) ? dynamicService.relatedServices : (Array.isArray(props.relatedServices) ? props.relatedServices : []);
   return (
     <div>
       {/* Hero */}

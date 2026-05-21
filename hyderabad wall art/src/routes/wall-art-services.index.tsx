@@ -89,7 +89,7 @@ function WallArtServicesPage() {
                 >
                   <div className="relative overflow-hidden rounded-2xl aspect-[4/3] shadow-xl">
                     <img
-                      src={service.images[0] || heroImg}
+                      src={service.images?.[0] || heroImg}
                       alt={service.label}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       loading="lazy"
