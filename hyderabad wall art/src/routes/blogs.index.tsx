@@ -6,6 +6,7 @@ import muralImg from "@/assets/service-mural.jpg";
 import hotelImg from "@/assets/service-hotel.jpg";
 import kidsRoomImg from "@/assets/service-kids-room.jpg";
 import stencilImg from "@/assets/service-stencil.jpg";
+import downloadImg from "@/assets/download.jpg";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/blogs/")({
@@ -42,10 +43,14 @@ function BlogsPage() {
 
   return (
     <div>
-      <section className="py-20 bg-navy">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+      <section 
+        className="relative py-20 bg-cover bg-center overflow-hidden"
+        style={{ backgroundImage: `url(${downloadImg})` }}
+      >
+        <div className="absolute inset-0 bg-navy/80" />
+        <div className="relative max-w-7xl mx-auto px-4 text-center z-10">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-            <span className="inline-block px-4 py-1.5 rounded-full bg-gold/20 text-gold text-sm font-semibold tracking-wider uppercase mb-4">Our Blog</span>
+            <span className="inline-block px-4 py-1.5 rounded-full bg-gold/20 text-gold text-sm font-semibold tracking-wider uppercase mb-4">Our Blogs</span>
             <h1 className="font-heading text-4xl md:text-5xl font-bold text-white">Wall Art Insights</h1>
             <p className="mt-4 text-white/70 text-lg">Tips, trends, and inspiration for wall art</p>
           </motion.div>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
-import heroImg from "@/assets/hero-slide-1.jpg";
+import heroImg from "@/assets/livingroom.jpg";
 import { useStore, type ServiceContent } from "@/lib/store";
 
 export const Route = createFileRoute("/wall-art-services/")({
