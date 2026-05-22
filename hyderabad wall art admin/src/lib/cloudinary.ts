@@ -11,7 +11,7 @@ export async function uploadToCloudinary(
   file: File,
   _resourceType: CloudinaryResourceType = "auto"
 ): Promise<string> {
-  const token = localStorage.getItem("auth_token");
+  const token = localStorage.getItem("hwa-token");
 
   const formData = new FormData();
   formData.append("file", file);
