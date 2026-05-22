@@ -121,7 +121,7 @@ function Index() {
   return (
     <div>
       {/* Hero Slider */}
-      <section className="relative h-screen min-h-[600px] max-h-[900px] overflow-hidden">
+      <section className="relative w-full aspect-[16/9] h-auto min-h-[250px] sm:aspect-auto sm:h-[60vh] sm:min-h-[450px] md:h-screen md:min-h-[600px] md:max-h-[900px] overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -149,11 +149,11 @@ function Index() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
-                className="inline-block px-4 py-1.5 rounded-full bg-gold/20 text-gold text-sm font-semibold tracking-wider uppercase mb-6 backdrop-blur-sm"
+                className="inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-gold/20 text-gold text-[10px] sm:text-sm font-semibold tracking-wider uppercase mb-2 sm:mb-6 backdrop-blur-sm"
               >
                 Since 2000 • Premium Wall Art
               </motion.span>
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight whitespace-pre-line">
+              <h1 className="font-heading text-2xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight sm:leading-tight whitespace-pre-line">
                 {(heroSlides[currentSlide % heroSlides.length]?.heading || "").split("\n").map((line, i) => (
                   <span key={i}>
                     {i === 1 ? <span className="text-gold">{line}</span> : line}
@@ -161,19 +161,19 @@ function Index() {
                   </span>
                 ))}
               </h1>
-              <p className="mt-6 text-lg text-white/80 max-w-xl leading-relaxed">
+              <p className="mt-2 sm:mt-6 text-xs sm:text-lg text-white/80 max-w-xl leading-relaxed">
                 {heroSlides[currentSlide % heroSlides.length]?.sub}
               </p>
-              <div className="mt-8 flex flex-wrap gap-4">
+              <div className="mt-4 sm:mt-8 flex flex-wrap gap-3 sm:gap-4">
                 <Link
                   to="/wall-art-services"
-                  className="inline-flex items-center px-8 py-4 gradient-primary text-white rounded-lg font-semibold text-base hover:opacity-90 transition-all shadow-lg hover:shadow-xl animate-pulse-glow"
+                  className="inline-flex items-center px-4 py-2.5 sm:px-8 sm:py-4 gradient-primary text-white rounded-lg font-semibold text-xs sm:text-base hover:opacity-90 transition-all shadow-lg hover:shadow-xl animate-pulse-glow"
                 >
                   Explore Services
                 </Link>
                 <Link
                   to="/contact"
-                  className="inline-flex items-center px-8 py-4 border-2 border-gold/50 text-white rounded-lg font-semibold text-base hover:bg-gold/10 transition-all backdrop-blur-sm"
+                  className="inline-flex items-center px-4 py-2.5 sm:px-8 sm:py-4 border-2 border-gold/50 text-white rounded-lg font-semibold text-xs sm:text-base hover:bg-gold/10 transition-all backdrop-blur-sm"
                 >
                   Get Free Consultation
                 </Link>
@@ -183,12 +183,12 @@ function Index() {
         </div>
 
         {/* Slide indicators */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+        <div className="absolute bottom-3 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2 sm:gap-3">
           {heroSlides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
-              className={`h-2 rounded-full transition-all duration-500 ${currentSlide === i ? "w-10 bg-gold" : "w-2 bg-white/40"}`}
+              className={`h-1.5 sm:h-2 rounded-full transition-all duration-500 ${currentSlide === i ? "w-6 sm:w-10 bg-gold" : "w-1.5 sm:w-2 bg-white/40"}`}
             />
           ))}
         </div>
