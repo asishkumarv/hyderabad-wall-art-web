@@ -17,12 +17,22 @@ export type ServiceContent = {
   relatedServices: { label: string; to: string }[];
 };
 
-export type GalleryImage = {
+export type GallerySection = {
   id: string;
   title: string;
-  category: string;
+  isActive: boolean;
+  orderIndex: number;
+  createdAt: number;
+};
+
+export type GalleryImage = {
+  id: string;
+  sectionId: string;
+  title: string;
   altText: string;
   imageUrl: string;
+  isActive: boolean;
+  orderIndex: number;
   createdAt: number;
 };
 
@@ -121,6 +131,7 @@ export type SitePages = {
 export function useStore() {
   const [data, setData] = useState<{
     services: ServiceContent[];
+    gallerySections: GallerySection[];
     gallery: GalleryImage[];
     blogPosts: BlogPost[];
     categories: WallpaperCategory[];
@@ -131,6 +142,7 @@ export function useStore() {
     isLoading: boolean;
   }>({
     services: [],
+    gallerySections: [],
     gallery: [],
     blogPosts: [],
     categories: [],
@@ -156,7 +168,7 @@ export function useStore() {
   const fetchData = useCallback(async () => {
     try {
       const endpoints = [
-        "services", "gallery", "blogs", "categories", 
+        "services", "gallery-sections", "gallery", "blogs", "categories", 
         "videos", "testimonials", "pages", "settings"
       ];
       
@@ -164,7 +176,7 @@ export function useStore() {
         endpoints.map(ep => fetch(`${API_URL}/${ep}`).then(res => res.json()))
       );
 
-      const [services, gallery, blogs, categories, videos, testimonials, pages, settings] = results;
+      const [services, gallerySections, gallery, blogs, categories, videos, testimonials, pages, settings] = results;
 
       setData({
         services: Array.isArray(services) ? services.map((s: any) => {
@@ -212,10 +224,19 @@ export function useStore() {
             relatedServices,
           };
         }) : [],
+        gallerySections: Array.isArray(gallerySections) ? gallerySections.map((s: any) => ({
+          ...s,
+          isActive: s.is_active,
+          orderIndex: s.order_index,
+          createdAt: new Date(s.created_at).getTime(),
+        })) : [],
         gallery: Array.isArray(gallery) ? gallery.map((g: any) => ({
           ...g,
+          sectionId: g.section_id,
           altText: g.alt_text,
           imageUrl: g.image_url,
+          isActive: g.is_active,
+          orderIndex: g.order_index,
           createdAt: new Date(g.created_at).getTime(),
         })) : [],
         blogPosts: Array.isArray(blogs) ? blogs.map((b: any) => ({

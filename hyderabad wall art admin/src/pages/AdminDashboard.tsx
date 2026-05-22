@@ -61,6 +61,7 @@ import {
 
 const sections = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+  { key: "gallery", label: "Gallery", icon: ImagePlus, path: "/admin/gallery" },
   { key: "blogs", label: "Blogs", icon: FileText, path: "/admin/blogs" },
   { key: "categories", label: "Categories", icon: Wallpaper, path: "/admin/categories" },
   { key: "videos", label: "Videos", icon: Video, path: "/admin/videos" },
@@ -180,6 +181,7 @@ export default function AdminDashboard() {
   const {
     services,
     gallery,
+    gallerySections,
     leads,
     blogPosts,
     categories,
@@ -194,6 +196,9 @@ export default function AdminDashboard() {
     addWhyPoint,
     updateWhyPoint,
     removeWhyPoint,
+    addGallerySection,
+    updateGallerySection,
+    deleteGallerySection,
     addGalleryImage,
     updateGalleryImage,
     deleteGalleryImage,
@@ -234,6 +239,30 @@ export default function AdminDashboard() {
   const [settingsDraft, setSettingsDraft] = useState<any>(null);
   const [pagesDraft, setPagesDraft] = useState<any>(null);
   const [previewVideo, setPreviewVideo] = useState<string | null>(null);
+  
+  // Gallery Management States
+  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
+  const [newSectionTitle, setNewSectionTitle] = useState("");
+  const [newSectionOrder, setNewSectionOrder] = useState(0);
+  const [newSectionIsActive, setNewSectionIsActive] = useState(true);
+  
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editingSectionTitle, setEditingSectionTitle] = useState("");
+  const [editingSectionOrder, setEditingSectionOrder] = useState(0);
+  const [editingSectionIsActive, setEditingSectionIsActive] = useState(true);
+
+  const [newImageTitle, setNewImageTitle] = useState("");
+  const [newImageAlt, setNewImageAlt] = useState("");
+  const [newImageOrder, setNewImageOrder] = useState(0);
+  const [newImageIsActive, setNewImageIsActive] = useState(true);
+  const [newImageUrl, setNewImageUrl] = useState("");
+
+  const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const [editingImageTitle, setEditingImageTitle] = useState("");
+  const [editingImageAlt, setEditingImageAlt] = useState("");
+  const [editingImageOrder, setEditingImageOrder] = useState(0);
+  const [editingImageIsActive, setEditingImageIsActive] = useState(true);
+  const [editingImageSectionId, setEditingImageSectionId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ open: boolean; title: string; message: string; type: "success" | "error" }>({ open: false, title: "", message: "", type: "success" });
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, any>>({});
@@ -639,6 +668,494 @@ export default function AdminDashboard() {
                               </div>
                             );
                           })}
+                        </div>
+                      </ModuleShell>
+                    </div>
+                  </div>
+                )}
+
+                {currentSection === "gallery" && (
+                  <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                    {/* Left Panel: Artwork Images */}
+                    <div className="space-y-6">
+                      <ModuleShell title="Gallery Artworks" description="Select a section, upload images, and manage existing artwork layouts.">
+                        <div className="space-y-5">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Select Gallery Section</label>
+                            <Select 
+                              value={selectedSectionId} 
+                              onValueChange={(val) => {
+                                setSelectedSectionId(val);
+                                // Clear new image form
+                                setNewImageTitle("");
+                                setNewImageAlt("");
+                                setNewImageUrl("");
+                                setNewImageOrder(0);
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="-- Choose a section --" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {gallerySections.map((section) => (
+                                  <SelectItem key={section.id} value={section.id}>
+                                    {section.title} {!section.isActive ? "(Inactive)" : ""}
+                                  </SelectItem>
+                                ))}
+                                {gallerySections.length === 0 && (
+                                  <SelectItem value="none" disabled>No sections available. Create one first!</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {selectedSectionId && selectedSectionId !== "none" ? (
+                            <div className="space-y-6 pt-4 border-t border-border/70">
+                              <h3 className="text-lg font-semibold text-primary">Add Artwork Image</h3>
+                              
+                              {/* Drag and Drop Zone */}
+                              <div
+                                onDragOver={(e) => { e.preventDefault(); setGalleryDropActive(true); }}
+                                onDragLeave={() => setGalleryDropActive(false)}
+                                onDrop={async (e) => {
+                                  e.preventDefault();
+                                  setGalleryDropActive(false);
+                                  const file = e.dataTransfer.files?.[0];
+                                  if (!file) return;
+                                  setIsUploading(true);
+                                  try {
+                                    const url = await uploadToCloudinary(file, "image");
+                                    setNewImageUrl(url);
+                                    setNewImageTitle(file.name.replace(/\.[^.]+$/, ""));
+                                    setNewImageAlt(`Wall art: ${file.name.replace(/\.[^.]+$/, "")}`);
+                                    toast.success("Uploaded to Cloudinary");
+                                  } catch (err: any) {
+                                    toast.error(err?.message ?? "Upload failed");
+                                  } finally {
+                                    setIsUploading(false);
+                                  }
+                                }}
+                                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-3xl p-6 transition-all cursor-pointer ${
+                                  galleryDropActive ? "border-gold bg-primary/5" : "border-border/75 hover:border-gold bg-canvas-texture/20"
+                                }`}
+                                onClick={() => galleryUploadRef.current?.click()}
+                              >
+                                <input
+                                  ref={galleryUploadRef}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (event) => {
+                                    const file = event.target.files?.[0];
+                                    if (!file) return;
+                                    setIsUploading(true);
+                                    try {
+                                      const url = await uploadToCloudinary(file, "image");
+                                      setNewImageUrl(url);
+                                      setNewImageTitle(file.name.replace(/\.[^.]+$/, ""));
+                                      setNewImageAlt(`Wall art: ${file.name.replace(/\.[^.]+$/, "")}`);
+                                      toast.success("Uploaded to Cloudinary");
+                                    } catch (err: any) {
+                                      toast.error(err?.message ?? "Upload failed");
+                                    } finally {
+                                      setIsUploading(false);
+                                    }
+                                  }}
+                                />
+                                {newImageUrl ? (
+                                  <div className="relative group aspect-video w-full max-w-xs rounded-2xl overflow-hidden border border-border">
+                                    <img src={newImageUrl} alt="Uploaded preview" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <p className="text-white text-xs font-semibold">Click or drag another to replace</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-center space-y-2">
+                                    <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground opacity-55" />
+                                    <p className="text-sm font-medium">Drag & drop your artwork image here, or click to browse</p>
+                                    <p className="text-xs text-muted-foreground">Supported files: JPG, PNG, WEBP (Max 100MB)</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-1">
+                                  <label className="text-[11px] uppercase font-bold text-muted-foreground ml-1">Artwork Title</label>
+                                  <Input 
+                                    placeholder="Artwork Title" 
+                                    value={newImageTitle} 
+                                    onChange={(e) => setNewImageTitle(e.target.value)} 
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[11px] uppercase font-bold text-muted-foreground ml-1">Alt Text (SEO)</label>
+                                  <Input 
+                                    placeholder="Alt description for accessibility" 
+                                    value={newImageAlt} 
+                                    onChange={(e) => setNewImageAlt(e.target.value)} 
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[11px] uppercase font-bold text-muted-foreground ml-1">Order Index</label>
+                                  <Input 
+                                    type="number" 
+                                    value={newImageOrder} 
+                                    onChange={(e) => setNewImageOrder(parseInt(e.target.value) || 0)} 
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-2xl border border-border bg-secondary/10">
+                                  <div>
+                                    <p className="text-sm font-semibold">Active Status</p>
+                                    <p className="text-xs text-muted-foreground">Show in user website grid</p>
+                                  </div>
+                                  <Switch checked={newImageIsActive} onCheckedChange={setNewImageIsActive} />
+                                </div>
+                              </div>
+
+                              <Button 
+                                variant="luxury" 
+                                className="w-full shadow-gold" 
+                                disabled={!newImageUrl || isSaving}
+                                onClick={async () => {
+                                  setIsSaving(true);
+                                  try {
+                                    await addGalleryImage({
+                                      sectionId: selectedSectionId,
+                                      title: newImageTitle || "Untitled Artwork",
+                                      altText: newImageAlt || newImageTitle || "Wall art",
+                                      imageUrl: newImageUrl,
+                                      orderIndex: newImageOrder,
+                                      isActive: newImageIsActive
+                                    });
+                                    setNewImageTitle("");
+                                    setNewImageAlt("");
+                                    setNewImageUrl("");
+                                    setNewImageOrder(0);
+                                    setNewImageIsActive(true);
+                                    toast.success("Artwork image saved to gallery");
+                                  } catch (err: any) {
+                                    toast.error(err?.message ?? "Failed to save artwork");
+                                  } finally {
+                                    setIsSaving(false);
+                                  }
+                                }}
+                              >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                                Add Artwork to Gallery
+                              </Button>
+
+                              <div className="pt-6 border-t border-border/70 space-y-4">
+                                <h3 className="text-lg font-semibold text-primary">Existing Artworks in Section</h3>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                  {gallery.filter(img => img.sectionId === selectedSectionId).map((image) => {
+                                    const isEditing = editingImageId === image.id;
+                                    return (
+                                      <Card key={image.id} className={`panel-luxury overflow-hidden ${!image.isActive ? "opacity-60" : ""}`}>
+                                        <div className="relative aspect-video w-full bg-secondary/20">
+                                          <img src={image.imageUrl} alt={image.title} className="h-full w-full object-cover" />
+                                          <Badge className="absolute top-2 left-2" variant={image.isActive ? "secondary" : "outline"}>
+                                            {image.isActive ? "Live" : "Inactive"}
+                                          </Badge>
+                                        </div>
+                                        <CardContent className="p-4 space-y-3">
+                                          {isEditing ? (
+                                            <div className="space-y-3">
+                                              <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Title</label>
+                                                <Input 
+                                                  value={editingImageTitle} 
+                                                  onChange={(e) => setEditingImageTitle(e.target.value)} 
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Alt Text</label>
+                                                <Input 
+                                                  value={editingImageAlt} 
+                                                  onChange={(e) => setEditingImageAlt(e.target.value)} 
+                                                />
+                                              </div>
+                                              <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Order Index</label>
+                                                  <Input 
+                                                    type="number" 
+                                                    value={editingImageOrder} 
+                                                    onChange={(e) => setEditingImageOrder(parseInt(e.target.value) || 0)} 
+                                                  />
+                                                </div>
+                                                <div className="space-y-1">
+                                                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Move to Section</label>
+                                                  <Select value={editingImageSectionId} onValueChange={setEditingImageSectionId}>
+                                                    <SelectTrigger className="h-9">
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      {gallerySections.map((sec) => (
+                                                        <SelectItem key={sec.id} value={sec.id}>{sec.title}</SelectItem>
+                                                      ))}
+                                                    </SelectContent>
+                                                  </Select>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center justify-between py-1">
+                                                <span className="text-xs font-semibold">Active Status</span>
+                                                <Switch checked={editingImageIsActive} onCheckedChange={setEditingImageIsActive} />
+                                              </div>
+                                              <div className="flex justify-end gap-2 pt-2">
+                                                <Button size="sm" variant="ghost" onClick={() => setEditingImageId(null)}>Cancel</Button>
+                                                <Button size="sm" variant="luxury" onClick={async () => {
+                                                  try {
+                                                    await updateGalleryImage(image.id, {
+                                                      title: editingImageTitle,
+                                                      altText: editingImageAlt,
+                                                      orderIndex: editingImageOrder,
+                                                      isActive: editingImageIsActive,
+                                                      sectionId: editingImageSectionId
+                                                    });
+                                                    setEditingImageId(null);
+                                                    toast.success("Artwork updated");
+                                                  } catch (err: any) {
+                                                    toast.error(err?.message ?? "Update failed");
+                                                  }
+                                                }}>Save</Button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-2">
+                                              <div className="flex justify-between items-start">
+                                                <div>
+                                                  <h4 className="font-semibold text-sm">{image.title || "Untitled"}</h4>
+                                                  <p className="text-xs text-muted-foreground">Alt: {image.altText || "—"}</p>
+                                                  <p className="text-xs text-primary font-medium mt-1">Order: {image.orderIndex}</p>
+                                                </div>
+                                                <div className="flex gap-1 shrink-0">
+                                                  <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 text-primary" 
+                                                    onClick={() => {
+                                                      setEditingImageId(image.id);
+                                                      setEditingImageTitle(image.title);
+                                                      setEditingImageAlt(image.altText);
+                                                      setEditingImageOrder(image.orderIndex);
+                                                      setEditingImageIsActive(image.isActive);
+                                                      setEditingImageSectionId(image.sectionId);
+                                                    }}
+                                                  >
+                                                    <FileText className="h-4 w-4" />
+                                                  </Button>
+                                                  <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-8 w-8 text-destructive"
+                                                    onClick={async () => {
+                                                      if (confirm("Delete this artwork?")) {
+                                                        try {
+                                                          await deleteGalleryImage(image.id);
+                                                          toast.success("Artwork deleted");
+                                                        } catch (err: any) {
+                                                          toast.error(err?.message ?? "Delete failed");
+                                                        }
+                                                      }
+                                                    }}
+                                                  >
+                                                    <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })}
+                                  {gallery.filter(img => img.sectionId === selectedSectionId).length === 0 && (
+                                    <div className="col-span-2 py-8 text-center text-sm text-muted-foreground border border-dashed rounded-2xl bg-canvas-texture/20">
+                                      No artwork images in this section yet. Upload one above!
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-3xl bg-canvas-texture/20">
+                              Please select a gallery section from the dropdown list to manage its artwork.
+                            </div>
+                          )}
+                        </div>
+                      </ModuleShell>
+                    </div>
+
+                    {/* Right Panel: Sections Management */}
+                    <div className="space-y-6">
+                      <ModuleShell title="Gallery Sections" description="Create, order, and toggle status of parent artwork categories.">
+                        <div className="space-y-5">
+                          {/* Add Section Form */}
+                          <div className="space-y-4 p-4 rounded-3xl border border-border/70 bg-canvas-texture/25">
+                            <h3 className="text-sm font-semibold tracking-wider uppercase text-primary">Create New Section</h3>
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <label className="text-xs text-muted-foreground ml-1">Section Title</label>
+                                <Input 
+                                  placeholder="e.g. Living Room Murals, Abstract Canvas" 
+                                  value={newSectionTitle} 
+                                  onChange={(e) => setNewSectionTitle(e.target.value)} 
+                                />
+                              </div>
+                              <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                                <div className="space-y-1">
+                                  <label className="text-xs text-muted-foreground ml-1">Sorting Order</label>
+                                  <Input 
+                                    type="number" 
+                                    value={newSectionOrder} 
+                                    onChange={(e) => setNewSectionOrder(parseInt(e.target.value) || 0)} 
+                                  />
+                                </div>
+                                <div className="flex items-center gap-3 pt-5 px-1">
+                                  <span className="text-xs text-muted-foreground">Live</span>
+                                  <Switch checked={newSectionIsActive} onCheckedChange={setNewSectionIsActive} />
+                                </div>
+                              </div>
+                              <Button 
+                                variant="luxury" 
+                                className="w-full mt-2" 
+                                disabled={!newSectionTitle.trim() || isSaving}
+                                onClick={async () => {
+                                  setIsSaving(true);
+                                  try {
+                                    await addGallerySection({
+                                      title: newSectionTitle,
+                                      orderIndex: newSectionOrder,
+                                      isActive: newSectionIsActive
+                                    });
+                                    setNewSectionTitle("");
+                                    setNewSectionOrder(0);
+                                    setNewSectionIsActive(true);
+                                    toast.success("New gallery section created");
+                                  } catch (err: any) {
+                                    toast.error(err?.message ?? "Failed to create section");
+                                  } finally {
+                                    setIsSaving(false);
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Section
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Sections List */}
+                          <div className="space-y-3">
+                            <h3 className="text-sm font-semibold tracking-wider uppercase text-primary">All Sections</h3>
+                            <div className="space-y-3">
+                              {gallerySections.map((section) => {
+                                const isEditingSection = editingSectionId === section.id;
+                                const itemCount = gallery.filter(img => img.sectionId === section.id).length;
+                                return (
+                                  <Card key={section.id} className={`panel-luxury ${!section.isActive ? "opacity-60" : ""}`}>
+                                    <CardContent className="p-4 space-y-3">
+                                      {isEditingSection ? (
+                                        <div className="space-y-3">
+                                          <div className="space-y-1">
+                                            <label className="text-xs font-semibold text-muted-foreground">Title</label>
+                                            <Input 
+                                              value={editingSectionTitle} 
+                                              onChange={(e) => setEditingSectionTitle(e.target.value)} 
+                                            />
+                                          </div>
+                                          <div className="grid grid-cols-[1fr_auto] gap-4 items-center">
+                                            <div className="space-y-1">
+                                              <label className="text-xs font-semibold text-muted-foreground">Order</label>
+                                              <Input 
+                                                type="number" 
+                                                value={editingSectionOrder} 
+                                                onChange={(e) => setEditingSectionOrder(parseInt(e.target.value) || 0)} 
+                                              />
+                                            </div>
+                                            <div className="flex items-center gap-2 pt-5">
+                                              <span className="text-xs font-semibold">Live</span>
+                                              <Switch checked={editingSectionIsActive} onCheckedChange={setEditingSectionIsActive} />
+                                            </div>
+                                          </div>
+                                          <div className="flex justify-end gap-2 pt-1">
+                                            <Button size="sm" variant="ghost" onClick={() => setEditingSectionId(null)}>Cancel</Button>
+                                            <Button size="sm" variant="luxury" onClick={async () => {
+                                              try {
+                                                await updateGallerySection(section.id, {
+                                                  title: editingSectionTitle,
+                                                  orderIndex: editingSectionOrder,
+                                                  isActive: editingSectionIsActive
+                                                });
+                                                setEditingSectionId(null);
+                                                toast.success("Section updated");
+                                              } catch (err: any) {
+                                                toast.error(err?.message ?? "Update failed");
+                                              }
+                                            }}>Save</Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center justify-between gap-4">
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <h4 className="font-semibold text-sm">{section.title}</h4>
+                                              <Badge variant={section.isActive ? "outline" : "secondary"} className="h-5 py-0 px-1 text-[9px]">
+                                                {section.isActive ? "Live" : "Inactive"}
+                                              </Badge>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {itemCount} {itemCount === 1 ? "artwork image" : "artwork images"} · Order index: {section.orderIndex}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="h-8 w-8 text-primary" 
+                                              onClick={() => {
+                                                setEditingSectionId(section.id);
+                                                setEditingSectionTitle(section.title);
+                                                setEditingSectionOrder(section.orderIndex);
+                                                setEditingSectionIsActive(section.isActive);
+                                              }}
+                                            >
+                                              <FileText className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="h-8 w-8 text-destructive"
+                                              onClick={async () => {
+                                                if (confirm(`Are you sure you want to delete the section "${section.title}"? This will delete all ${itemCount} artwork images inside it.`)) {
+                                                  try {
+                                                    await deleteGallerySection(section.id);
+                                                    if (selectedSectionId === section.id) {
+                                                      setSelectedSectionId("");
+                                                    }
+                                                    toast.success("Section deleted successfully");
+                                                  } catch (err: any) {
+                                                    toast.error(err?.message ?? "Delete failed");
+                                                  }
+                                                }
+                                              }}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                              {gallerySections.length === 0 && (
+                                <div className="py-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl bg-canvas-texture/20">
+                                  No gallery sections created yet. Use the form above to add one.
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </ModuleShell>
                     </div>

@@ -5,6 +5,7 @@ const authenticate = require('../middleware/auth');
 
 // Public routes (GET)
 router.get('/services', apiController.getServices);
+router.get('/gallery-sections', apiController.getGallerySections);
 router.get('/gallery', apiController.getGallery);
 router.get('/blogs', apiController.getBlogs);
 router.get('/categories', apiController.getCategories);
@@ -22,6 +23,11 @@ router.use(authenticate);
 
 // Services
 router.put('/services/:key', apiController.updateService);
+
+// Gallery Sections
+router.post('/gallery-sections', apiController.createGallerySection);
+router.put('/gallery-sections/:id', apiController.updateGallerySection);
+router.delete('/gallery-sections/:id', apiController.deleteGallerySection);
 
 // Gallery
 router.post('/gallery', apiController.createGallery);

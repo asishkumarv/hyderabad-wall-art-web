@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
-import { useStore } from "@/lib/store";
+import { useStore, type GalleryImage } from "@/lib/store";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import heroSlide2 from "@/assets/hero-slide-2.jpg";
@@ -30,10 +30,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { services: apiServices, testimonials: apiTestimonials, pages, isLoading } = useStore();
+  const { services: apiServices, gallerySections, gallery, testimonials: apiTestimonials, pages, isLoading } = useStore();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentReview, setCurrentReview] = useState(0);
   const [currentOfferImg, setCurrentOfferImg] = useState(0);
+  const [selectedLightboxImage, setSelectedLightboxImage] = useState<GalleryImage | null>(null);
 
   // Fallbacks if DB is empty
   const heroSlides = (pages.home.heroSlides && pages.home.heroSlides.length > 0)
@@ -110,6 +111,10 @@ function Index() {
     const timer = setInterval(() => setCurrentOfferImg((p) => (p + 1) % (offerImages.length || 1)), 3000);
     return () => clearInterval(timer);
   }, [offerImages.length]);
+
+  const activeSections = gallerySections
+    .filter((s) => s.isActive)
+    .sort((a, b) => a.orderIndex - b.orderIndex);
 
   if (isLoading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
 
@@ -188,6 +193,62 @@ function Index() {
           ))}
         </div>
       </section>
+
+      {/* Gallery Showcase */}
+      {activeSections.length > 0 && (
+        <section className="py-20 bg-secondary/35 border-b border-border/40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              subtitle="Gallery"
+              title="Artwork Showcase"
+              description="Explore our curated collection of custom wall art installations, murals, and professional paintings."
+            />
+            
+            <div className="space-y-16 mt-12">
+              {activeSections.map((section) => {
+                const sectionImages = gallery
+                  .filter(img => img.isActive && img.sectionId === section.id)
+                  .sort((a, b) => a.orderIndex - b.orderIndex);
+                  
+                if (sectionImages.length === 0) return null;
+                
+                return (
+                  <div key={section.id} className="space-y-6">
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground tracking-wide">
+                        {section.title}
+                      </h3>
+                      <div className="h-px bg-gold/30 flex-1" />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {sectionImages.map((image) => (
+                        <motion.div
+                          key={image.id}
+                          className="group relative cursor-pointer overflow-hidden rounded-2xl aspect-square bg-navy/20 border border-gold/10 hover:border-gold/30 transition-all duration-300 shadow-md hover:shadow-gold/10"
+                          whileHover={{ y: -4 }}
+                          onClick={() => setSelectedLightboxImage(image)}
+                        >
+                          <img
+                            src={image.imageUrl}
+                            alt={image.altText || image.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+                            <h4 className="font-heading text-base font-bold text-white tracking-wide">{image.title}</h4>
+                            {image.altText && <p className="text-xs text-white/70 mt-1 line-clamp-2">{image.altText}</p>}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Services Showcase */}
       <section className="py-20 bg-background">
@@ -419,6 +480,51 @@ function Index() {
           </motion.div>
         </div>
       </section>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {selectedLightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 p-4 md:p-8 backdrop-blur-md"
+            onClick={() => setSelectedLightboxImage(null)}
+          >
+            {/* Close button */}
+            <button
+              className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all z-[60]"
+              onClick={() => setSelectedLightboxImage(null)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Content wrapper */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 120 }}
+              className="relative max-w-5xl max-h-[85vh] w-full flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={selectedLightboxImage.imageUrl}
+                alt={selectedLightboxImage.altText || selectedLightboxImage.title}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-gold/20"
+              />
+              <div className="text-center mt-4 space-y-1">
+                <h3 className="font-heading text-lg md:text-xl font-bold text-white">{selectedLightboxImage.title}</h3>
+                {selectedLightboxImage.altText && (
+                  <p className="text-sm text-white/70 max-w-2xl mx-auto">{selectedLightboxImage.altText}</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

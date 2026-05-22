@@ -50,6 +50,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/gallery" element={<AdminDashboard />} />
               <Route path="/admin/profile" element={<AdminDashboard />} />
               <Route path="/admin/blogs" element={<AdminDashboard />} />
               <Route path="/admin/categories" element={<AdminDashboard />} />

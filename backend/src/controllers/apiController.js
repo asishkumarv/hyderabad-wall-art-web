@@ -4,7 +4,13 @@ const { processMediaFields } = require('../utils/cloudinary');
 // Generic CRUD factory
 const getAll = (table) => async (req, res) => {
   try {
-    const result = await query(`SELECT * FROM ${table} ORDER BY ${table === 'activities' || table === 'leads' || table === 'blogs' || table === 'gallery' || table === 'contacts' ? 'created_at DESC' : 'id ASC'}`);
+    let orderBy = 'id ASC';
+    if (table === 'activities' || table === 'leads' || table === 'blogs' || table === 'contacts') {
+      orderBy = 'created_at DESC';
+    } else if (table === 'gallery_sections' || table === 'gallery') {
+      orderBy = 'order_index ASC, created_at DESC';
+    }
+    const result = await query(`SELECT * FROM ${table} ORDER BY ${orderBy}`);
     res.json(result.rows);
   } catch (err) {
     console.error(`Error fetching ${table}:`, err);
@@ -199,8 +205,13 @@ exports.updateSettings = async (req, res) => {
 };
 
 // Expose generic CRUDs
+exports.getGallerySections = getAll('gallery_sections');
+exports.createGallerySection = create('gallery_sections', ['title', 'is_active', 'order_index']);
+exports.updateGallerySection = update('gallery_sections');
+exports.deleteGallerySection = remove('gallery_sections');
+
 exports.getGallery = getAll('gallery');
-exports.createGallery = create('gallery', ['title', 'category', 'alt_text', 'image_url']);
+exports.createGallery = create('gallery', ['section_id', 'title', 'alt_text', 'image_url', 'is_active', 'order_index']);
 exports.updateGallery = update('gallery');
 exports.deleteGallery = remove('gallery');
 

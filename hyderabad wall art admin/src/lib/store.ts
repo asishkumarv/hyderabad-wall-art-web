@@ -18,12 +18,22 @@ export type ServiceContent = {
   relatedServices: { label: string; to: string }[];
 };
 
-export type GalleryImage = {
+export type GallerySection = {
   id: string;
   title: string;
-  category: string;
+  isActive: boolean;
+  orderIndex: number;
+  createdAt: number;
+};
+
+export type GalleryImage = {
+  id: string;
+  sectionId: string;
+  title: string;
   altText: string;
   imageUrl: string;
+  isActive: boolean;
+  orderIndex: number;
   createdAt: number;
 };
 
@@ -157,6 +167,7 @@ export function useStore() {
   const { token } = useAuth();
   const [data, setData] = useState<{
     services: ServiceContent[];
+    gallerySections: GallerySection[];
     gallery: GalleryImage[];
     leads: LeadRecord[];
     blogPosts: BlogPost[];
@@ -170,6 +181,7 @@ export function useStore() {
     isLoading: boolean;
   }>({
     services: [],
+    gallerySections: [],
     gallery: [],
     leads: [],
     blogPosts: [],
@@ -198,7 +210,7 @@ export function useStore() {
   const fetchData = useCallback(async () => {
     try {
       const endpoints = [
-        "services", "gallery", "leads", "blogs", "categories", 
+        "services", "gallery-sections", "gallery", "leads", "blogs", "categories", 
         "videos", "testimonials", "contacts", "activities", "pages", "settings"
       ];
       
@@ -209,9 +221,9 @@ export function useStore() {
           }).then(res => res.json())
         )
       );
-
-      const [services, gallery, leads, blogs, categories, videos, testimonials, contacts, activities, pages, settings] = results;
-
+ 
+      const [services, gallerySections, gallery, leads, blogs, categories, videos, testimonials, contacts, activities, pages, settings] = results;
+ 
       setData({
         services: Array.isArray(services) ? services.map((s: any) => {
           let benefits = [];
@@ -224,7 +236,7 @@ export function useStore() {
               console.error("Failed to parse benefits:", e);
             }
           }
-
+ 
           let relatedServices = [];
           if (Array.isArray(s.related_services)) {
             relatedServices = s.related_services;
@@ -235,7 +247,7 @@ export function useStore() {
               console.error("Failed to parse related_services:", e);
             }
           }
-
+ 
           let whyChooseUs = [];
           if (Array.isArray(s.why_choose_us)) {
             whyChooseUs = s.why_choose_us;
@@ -246,7 +258,7 @@ export function useStore() {
               console.error("Failed to parse why_choose_us:", e);
             }
           }
-
+ 
           return {
             ...s,
             heroTitle: s.hero_title,
@@ -258,10 +270,19 @@ export function useStore() {
             relatedServices,
           };
         }) : [],
+        gallerySections: Array.isArray(gallerySections) ? gallerySections.map((s: any) => ({
+          ...s,
+          isActive: s.is_active,
+          orderIndex: s.order_index,
+          createdAt: new Date(s.created_at).getTime(),
+        })) : [],
         gallery: Array.isArray(gallery) ? gallery.map((g: any) => ({
           ...g,
+          sectionId: g.section_id,
           altText: g.alt_text,
           imageUrl: g.image_url,
+          isActive: g.is_active,
+          orderIndex: g.order_index,
           createdAt: new Date(g.created_at).getTime(),
         })) : [],
         leads: Array.isArray(leads) ? leads.map((l: any) => ({
@@ -373,18 +394,35 @@ export function useStore() {
         why_choose_us: service.whyChooseUs.filter((_, i) => i !== index),
       });
     },
+    addGallerySection: (section: any) => apiCall("gallery-sections", "POST", {
+      title: section.title,
+      is_active: section.isActive !== undefined ? section.isActive : true,
+      order_index: section.orderIndex || 0,
+    }),
+    updateGallerySection: (id: string, patch: any) => {
+      const body: any = {};
+      if (patch.title !== undefined) body.title = patch.title;
+      if (patch.isActive !== undefined) body.is_active = patch.isActive;
+      if (patch.orderIndex !== undefined) body.order_index = patch.orderIndex;
+      return apiCall(`gallery-sections/${id}`, "PUT", body);
+    },
+    deleteGallerySection: (id: string) => apiCall(`gallery-sections/${id}`, "DELETE"),
     addGalleryImage: (image: any) => apiCall("gallery", "POST", {
+      section_id: image.sectionId,
       title: image.title,
-      category: image.category,
       alt_text: image.altText,
       image_url: image.imageUrl,
+      is_active: image.isActive !== undefined ? image.isActive : true,
+      order_index: image.orderIndex || 0,
     }),
     updateGalleryImage: (id: string, patch: any) => {
       const body: any = {};
+      if (patch.sectionId !== undefined) body.section_id = patch.sectionId;
       if (patch.title !== undefined) body.title = patch.title;
-      if (patch.category !== undefined) body.category = patch.category;
       if (patch.altText !== undefined) body.alt_text = patch.altText;
       if (patch.imageUrl !== undefined) body.image_url = patch.imageUrl;
+      if (patch.isActive !== undefined) body.is_active = patch.isActive;
+      if (patch.orderIndex !== undefined) body.order_index = patch.orderIndex;
       return apiCall(`gallery/${id}`, "PUT", body);
     },
     deleteGalleryImage: (id: string) => apiCall(`gallery/${id}`, "DELETE"),
