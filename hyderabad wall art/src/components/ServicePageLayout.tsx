@@ -1,7 +1,10 @@
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import SectionHeading from "@/components/SectionHeading";
 import { useStore, type ServiceKey } from "@/lib/store";
+
+
 
 interface ServicePageLayoutProps {
   serviceKey?: ServiceKey;
@@ -17,8 +20,34 @@ interface ServicePageLayoutProps {
 export default function ServicePageLayout({ serviceKey, ...props }: ServicePageLayoutProps) {
   const { services } = useStore();
   
-  // Try to find dynamic content from the store
-  const dynamicService = serviceKey ? services.find(s => s.key === serviceKey) : null;
+  // Try to find dynamic content from the store using a robust lookup
+  const dynamicService = useMemo(() => {
+    if (!serviceKey) return null;
+    
+    // 1. Exact key match
+    let found = services.find(s => s.key === serviceKey);
+    if (found) return found;
+
+    // 2. Normalize and check if one contains the other or matches partially
+    const norm = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const target = norm(serviceKey);
+
+    // Try key match
+    found = services.find(s => norm(s.key).includes(target) || target.includes(norm(s.key)));
+    if (found) return found;
+
+    // Try label match
+    found = services.find(s => norm(s.label).includes(target) || target.includes(norm(s.label)));
+    if (found) return found;
+
+    // Special case for wood carving / wood carved
+    if (target.includes("wood")) {
+      found = services.find(s => norm(s.key).includes("wood") || norm(s.label).includes("wood"));
+      if (found) return found;
+    }
+
+    return null;
+  }, [serviceKey, services]);
 
   // Use dynamic content if available, otherwise fallback to props
   const title = dynamicService?.heroTitle || props.title;
@@ -28,6 +57,55 @@ export default function ServicePageLayout({ serviceKey, ...props }: ServicePageL
   const benefits = (dynamicService?.benefits && Array.isArray(dynamicService.benefits) && dynamicService.benefits.length > 0) ? dynamicService.benefits : (Array.isArray(props.benefits) ? props.benefits : []);
   const whyChoose = (dynamicService?.whyChooseUs && Array.isArray(dynamicService.whyChooseUs) && dynamicService.whyChooseUs.length > 0) ? dynamicService.whyChooseUs : (Array.isArray(props.whyChoose) ? props.whyChoose : []);
   const relatedServices = (dynamicService?.relatedServices && Array.isArray(dynamicService.relatedServices) && dynamicService.relatedServices.length > 0) ? dynamicService.relatedServices : (Array.isArray(props.relatedServices) ? props.relatedServices : []);
+
+  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
+  const [containerWidth, setContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const padding = window.innerWidth < 640 ? 32 : window.innerWidth < 1024 ? 48 : 64;
+      setContainerWidth(Math.min(1216, window.innerWidth - padding));
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const galleryImages = (dynamicService?.images && dynamicService.images.length > 0) 
+    ? dynamicService.images 
+    : [image, image, image];
+
+  const rows: { images: { url: string; index: number }[]; height: number }[] = [];
+  let currentRow: { url: string; index: number }[] = [];
+  let currentAspectRatioSum = 0;
+  
+  const targetHeight = window.innerWidth < 640 ? 180 : window.innerWidth < 768 ? 220 : window.innerWidth < 1024 ? 260 : 300;
+  const gap = 24;
+
+  galleryImages.forEach((img, i) => {
+    let initialRatio = 1.5;
+    if (img.toLowerCase().includes("woodcarved") || img.toLowerCase().includes("staircase") || img.toLowerCase().includes("stencil")) {
+      initialRatio = 0.67;
+    }
+    const ratio = aspectRatios[img] || initialRatio;
+    currentRow.push({ url: img, index: i });
+    currentAspectRatioSum += ratio;
+
+    const rowWidth = currentAspectRatioSum * targetHeight + (currentRow.length - 1) * gap;
+    if (rowWidth >= containerWidth) {
+      let exactHeight = (containerWidth - (currentRow.length - 1) * gap) / currentAspectRatioSum;
+      if (exactHeight > targetHeight * 1.35) {
+        exactHeight = targetHeight;
+      }
+      rows.push({ images: currentRow, height: exactHeight });
+      currentRow = [];
+      currentAspectRatioSum = 0;
+    }
+  });
+
+  if (currentRow.length > 0) {
+    rows.push({ images: currentRow, height: targetHeight });
+  }
   return (
     <div>
       {/* Hero */}
@@ -64,34 +142,49 @@ export default function ServicePageLayout({ serviceKey, ...props }: ServicePageL
       <section className="py-16 bg-secondary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading subtitle="Our Work" title="Project Gallery" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(dynamicService?.images && dynamicService.images.length > 0) ? (
-              dynamicService.images.map((img, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg"
-                >
-                  <img src={img} alt={`${title} project ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                </motion.div>
-              ))
-            ) : (
-              [1, 2, 3].map((i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg"
-                >
-                  <img src={image} alt={`${title} project ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                </motion.div>
-              ))
-            )}
+          <div className="space-y-6">
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex flex-wrap gap-6 justify-start">
+                {row.images.map((imgObj) => {
+                  let initialRatio = 1.5;
+                  if (imgObj.url.toLowerCase().includes("woodcarved") || imgObj.url.toLowerCase().includes("staircase") || imgObj.url.toLowerCase().includes("stencil")) {
+                    initialRatio = 0.67;
+                  }
+                  const ratio = aspectRatios[imgObj.url] || initialRatio;
+                  return (
+                    <motion.div
+                      key={imgObj.index}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: imgObj.index * 0.1 }}
+                      style={{
+                        height: `${row.height}px`,
+                        aspectRatio: `${ratio}`,
+                      }}
+                      className="rounded-2xl overflow-hidden group shadow-lg bg-card border border-gold/10 flex-none"
+                      layout
+                    >
+                      <img
+                        src={imgObj.url}
+                        alt={`${title} project ${imgObj.index + 1}`}
+                        onLoad={(e) => {
+                          const imageEl = e.currentTarget;
+                          if (imageEl.naturalHeight > 0) {
+                            const loadedRatio = imageEl.naturalWidth / imageEl.naturalHeight;
+                            if (aspectRatios[imgObj.url] !== loadedRatio) {
+                              setAspectRatios(prev => ({ ...prev, [imgObj.url]: loadedRatio }));
+                            }
+                          }
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        loading="lazy"
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </section>

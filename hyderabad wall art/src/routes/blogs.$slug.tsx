@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -10,6 +11,19 @@ export const Route = createFileRoute("/blogs/$slug")({
 function BlogDetailPage() {
   const { slug } = Route.useParams();
   const { blogPosts: apiBlogs, isLoading } = useStore();
+
+  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
+  const [containerWidth, setContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const padding = window.innerWidth < 640 ? 32 : window.innerWidth < 1024 ? 48 : 64;
+      setContainerWidth(Math.min(1216, window.innerWidth - padding));
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (isLoading) return <div className="py-40 text-center">Loading blog post...</div>;
 
@@ -27,6 +41,42 @@ function BlogDetailPage() {
         </div>
       </div>
     );
+  }
+
+  const galleryImages = (blog.gallery_images && blog.gallery_images.length > 0) 
+    ? blog.gallery_images 
+    : [blog.image];
+
+  const rows: { images: { url: string; index: number }[]; height: number }[] = [];
+  let currentRow: { url: string; index: number }[] = [];
+  let currentAspectRatioSum = 0;
+  
+  const targetHeight = window.innerWidth < 640 ? 140 : window.innerWidth < 768 ? 180 : 220;
+  const gap = 16; // gap-4 is 16px
+
+  galleryImages.forEach((img, i) => {
+    let initialRatio = 1.5;
+    if (img.toLowerCase().includes("woodcarved") || img.toLowerCase().includes("staircase") || img.toLowerCase().includes("stencil") || img.toLowerCase().includes("portrait") || img.toLowerCase().includes("potrait") || img.toLowerCase().includes("swami") || img.toLowerCase().includes("krishna")) {
+      initialRatio = 0.67;
+    }
+    const ratio = aspectRatios[img] || initialRatio;
+    currentRow.push({ url: img, index: i });
+    currentAspectRatioSum += ratio;
+
+    const rowWidth = currentAspectRatioSum * targetHeight + (currentRow.length - 1) * gap;
+    if (rowWidth >= containerWidth) {
+      let exactHeight = (containerWidth - (currentRow.length - 1) * gap) / currentAspectRatioSum;
+      if (exactHeight > targetHeight * 1.35) {
+        exactHeight = targetHeight;
+      }
+      rows.push({ images: currentRow, height: exactHeight });
+      currentRow = [];
+      currentAspectRatioSum = 0;
+    }
+  });
+
+  if (currentRow.length > 0) {
+    rows.push({ images: currentRow, height: targetHeight });
   }
 
   return (
@@ -63,18 +113,48 @@ function BlogDetailPage() {
       <section className="py-16 bg-secondary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="font-heading text-2xl font-bold text-foreground text-center mb-10">Related Wall Art Visuals</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {(blog.gallery_images && blog.gallery_images.length > 0 ? blog.gallery_images : [blog.image]).map((img: string, i: number) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="aspect-square rounded-xl overflow-hidden group shadow-lg"
-              >
-                <img src={img} alt={`${blog.title} related work ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-              </motion.div>
+          <div className="space-y-4">
+            {rows.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex flex-wrap gap-4 justify-start">
+                {row.images.map((imgObj) => {
+                  let initialRatio = 1.5;
+                  if (imgObj.url.toLowerCase().includes("woodcarved") || imgObj.url.toLowerCase().includes("staircase") || imgObj.url.toLowerCase().includes("stencil") || imgObj.url.toLowerCase().includes("portrait") || imgObj.url.toLowerCase().includes("potrait") || imgObj.url.toLowerCase().includes("swami") || imgObj.url.toLowerCase().includes("krishna")) {
+                    initialRatio = 0.67;
+                  }
+                  const ratio = aspectRatios[imgObj.url] || initialRatio;
+                  return (
+                    <motion.div
+                      key={imgObj.index}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: imgObj.index * 0.1 }}
+                      style={{
+                        height: `${row.height}px`,
+                        aspectRatio: `${ratio}`,
+                      }}
+                      className="rounded-xl overflow-hidden group shadow-lg bg-card border border-gold/10 flex-none"
+                      layout
+                    >
+                      <img
+                        src={imgObj.url}
+                        alt={`${blog.title} related work ${imgObj.index + 1}`}
+                        onLoad={(e) => {
+                          const imageEl = e.currentTarget;
+                          if (imageEl.naturalHeight > 0) {
+                            const loadedRatio = imageEl.naturalWidth / imageEl.naturalHeight;
+                            if (aspectRatios[imgObj.url] !== loadedRatio) {
+                              setAspectRatios(prev => ({ ...prev, [imgObj.url]: loadedRatio }));
+                            }
+                          }
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        loading="lazy"
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
             ))}
           </div>
         </div>

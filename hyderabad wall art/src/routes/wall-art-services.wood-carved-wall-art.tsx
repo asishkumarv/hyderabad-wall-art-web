@@ -11,6 +11,7 @@ export const Route = createFileRoute("/wall-art-services/wood-carved-wall-art")(
   }),
   component: () => (
     <ServicePageLayout
+      serviceKey="wood-carved-wall-art"
       title="Wood Carved Wall Art"
       subtitle="Wall Art Services"
       description="Premium handcrafted wooden wall panels and carvings that add luxury and texture to any interior. Our skilled artisans create bespoke wood-carved installations for luxury interiors."

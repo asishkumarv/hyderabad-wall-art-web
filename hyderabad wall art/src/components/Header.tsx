@@ -32,7 +32,24 @@ export default function Header() {
     services.forEach(service => {
       if (service.key === "wallpaper") return;
       
-      const item = { label: service.label, to: `/wall-art-services/${service.key}` };
+      let to = `/wall-art-services/${service.key}`;
+      if (service.key === "home") {
+        to = "/wall-art-services/home/living-room";
+      } else if (service.key === "commercial") {
+        to = "/wall-art-services/commercial/hotels-restaurants";
+      } else if (service.key === "mural") {
+        to = "/wall-art-services/mural-paintings";
+      } else if (service.key === "stencil") {
+        to = "/wall-art-services/stencil-wall-painting";
+      } else if (
+        service.key === "service-1778664020938" ||
+        service.key.includes("wood-carving") ||
+        service.label.toLowerCase().includes("wood carving")
+      ) {
+        to = "/wall-art-services/wood-carved-wall-art";
+      }
+
+      const item = { label: service.label, to };
       
       if (service.category?.toLowerCase().includes("commercial")) {
         categories["Commercial Wall Art"].push(item);
@@ -113,44 +130,39 @@ export default function Header() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute left-0 top-full w-72 overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
+                          className="absolute right-0 top-full w-[460px] overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 z-50"
                         >
-                          {Object.entries(wallArtServices).map(([category, items]) => (
-                            <div
-                              key={category}
-                              className="relative"
-                              onMouseEnter={() => setActiveCategory(category)}
-                              onMouseLeave={() => setActiveCategory(null)}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Wall Art Categories</span>
+                            <Link
+                              to="/wall-art-services"
+                              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
                             >
-                              <Link
-                                to={items.length === 1 ? items[0].to : "/wall-art-services"}
-                                className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-primary"
-                              >
-                                {category}
-                                {items.length > 1 && (
-                                  <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                )}
-                              </Link>
-                              <AnimatePresence>
-                                {activeCategory === category && items.length > 1 && (
-                                  <motion.div
-                                    initial={{ opacity: 0, x: 10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 10 }}
-                                    className="absolute left-full top-0 w-64 rounded-xl border border-border bg-card py-2 shadow-2xl"
-                                  >
-                                    {items.map((item) => (
-                                      <Link key={item.to} to={item.to} className="block px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-accent hover:text-primary">
-                                        {item.label}
-                                      </Link>
-                                    ))}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          ))}
+                              View All Services
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                          </div>
+                          <div className="h-px bg-border/60" />
+                          <div className="grid grid-cols-2 gap-6">
+                            {Object.entries(wallArtServices).map(([category, items]) => (
+                              <div key={category} className="space-y-3">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-gold border-b border-border/40 pb-1">{category}</p>
+                                <div className="space-y-1">
+                                  {items.map((item) => (
+                                    <Link
+                                      key={item.to}
+                                      to={item.to}
+                                      className="block rounded-lg px-2 py-1.5 text-sm text-foreground transition-all duration-200 hover:bg-accent hover:text-primary hover:translate-x-1"
+                                    >
+                                      {item.label}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>

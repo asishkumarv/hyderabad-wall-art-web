@@ -23,7 +23,7 @@ function cleanWhatsappNumber(value: string) {
 
 export function PublicSite() {
   const location = useLocation();
-  const { services, gallery, blogPosts, settings, categories, videos, testimonials, pages, isLoading } = useStore();
+  const { services, gallery, gallerySections, blogPosts, settings, categories, videos, testimonials, pages, isLoading } = useStore();
   const [activeWallpaperFilter, setActiveWallpaperFilter] = useState("All");
 
   const selectedServiceKey = serviceRouteMap[location.pathname] ?? "home";
@@ -33,7 +33,12 @@ export function PublicSite() {
   const selectedService = services.find((service) => service.key === selectedServiceKey) ?? activeServices[0] ?? services[0];
 
   const whatsappUrl = `https://wa.me/${cleanWhatsappNumber(settings.whatsappNumber)}`;
-  const galleryCategories = ["All", ...new Set(gallery.map((image) => image.category))];
+
+  const gallerySectionsMap = useMemo(() => {
+    return new Map(gallerySections.map((s) => [s.id, s.title]));
+  }, [gallerySections]);
+
+  const galleryCategories = ["All", ...new Set(gallery.map((image) => gallerySectionsMap.get(image.sectionId) || "Other"))];
   const wallpaperFilters = ["All", ...categories.map((category) => category.name)];
   const filteredWallpaperCategories = activeWallpaperFilter === "All"
     ? categories
@@ -181,12 +186,12 @@ export function PublicSite() {
         <section className="border-b border-border/70 py-16">
           <div className="container grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
             <Card className="panel-luxury h-fit"><CardContent className="space-y-6 p-6"><div><p className="text-sm font-medium uppercase tracking-[0.24em] text-primary">Why choose us</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">{selectedService?.label || "Service"} expertise, tuned by live admin copy</h2></div><div className="space-y-4">{(selectedService?.whyChooseUs || []).map((point, index) => <div key={`${point}-${index}`} className="flex gap-3"><div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary"><Star className="h-4 w-4" /></div><p className="text-sm leading-7 text-muted-foreground">{point}</p></div>)}</div></CardContent></Card>
-            <div className="grid gap-4 sm:grid-cols-2">{gallery.slice(0, 4).map((image) => <Card key={image.id} className="panel-luxury panel-hover overflow-hidden"><div className="aspect-[4/3] overflow-hidden"><img src={image.imageUrl} alt={image.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]" /></div><CardContent className="space-y-2 p-5"><div className="flex items-center justify-between gap-2"><p className="font-medium tracking-tight">{image.title}</p><Badge variant="outline">{image.category}</Badge></div><p className="text-sm text-muted-foreground">{image.altText}</p></CardContent></Card>)}</div>
+            <div className="grid gap-4 sm:grid-cols-2">{gallery.slice(0, 4).map((image) => <Card key={image.id} className="panel-luxury panel-hover overflow-hidden"><div className="aspect-[4/3] overflow-hidden"><img src={image.imageUrl} alt={image.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]" /></div><CardContent className="space-y-2 p-5"><div className="flex items-center justify-between gap-2"><p className="font-medium tracking-tight">{image.title}</p><Badge variant="outline">{gallerySectionsMap.get(image.sectionId) || "Other"}</Badge></div><p className="text-sm text-muted-foreground">{image.altText}</p></CardContent></Card>)}</div>
           </div>
         </section>
 
         <section id="gallery" className="border-b border-border/70 py-16">
-          <div className="container space-y-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-[0.24em] text-primary">Gallery dynamic hub</p><h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">SEO-ready images filtered by category</h2></div><div className="flex flex-wrap gap-2">{galleryCategories.map((category) => <Badge key={category} variant="outline" className="rounded-full px-4 py-2 text-sm">{category}</Badge>)}</div></div><div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{gallery.slice(0, 6).map((image) => <Card key={image.id} className="panel-luxury panel-hover overflow-hidden"><div className="aspect-[5/4] overflow-hidden"><img src={image.imageUrl} alt={image.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" /></div><CardContent className="space-y-3 p-5"><div className="flex items-center justify-between gap-3"><p className="text-lg font-semibold tracking-tight">{image.title}</p><Badge variant="secondary">{image.category}</Badge></div><p className="text-sm leading-6 text-muted-foreground">{image.altText}</p></CardContent></Card>)}</div></div>
+          <div className="container space-y-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-[0.24em] text-primary">Gallery dynamic hub</p><h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">SEO-ready images filtered by category</h2></div><div className="flex flex-wrap gap-2">{galleryCategories.map((category) => <Badge key={category} variant="outline" className="rounded-full px-4 py-2 text-sm">{category}</Badge>)}</div></div><div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{gallery.slice(0, 6).map((image) => <Card key={image.id} className="panel-luxury panel-hover overflow-hidden"><div className="aspect-[5/4] overflow-hidden"><img src={image.imageUrl} alt={image.altText} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" /></div><CardContent className="space-y-3 p-5"><div className="flex items-center justify-between gap-3"><p className="text-lg font-semibold tracking-tight">{image.title}</p><Badge variant="secondary">{gallerySectionsMap.get(image.sectionId) || "Other"}</Badge></div><p className="text-sm leading-6 text-muted-foreground">{image.altText}</p></CardContent></Card>)}</div></div>
         </section>
 
         <section className="border-b border-border/70 py-16">

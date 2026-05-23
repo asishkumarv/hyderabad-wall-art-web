@@ -281,8 +281,9 @@ export default function AdminDashboard() {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  const galleryCategories = ["All", ...new Set(gallery.map((image) => image.category))];
-  const filteredGallery = galleryFilter === "All" ? gallery : gallery.filter((image) => image.category === galleryFilter);
+  const gallerySectionsMap = new Map(gallerySections.map((s) => [s.id, s.title]));
+  const galleryCategories = ["All", ...new Set(gallery.map((image) => gallerySectionsMap.get(image.sectionId) || "Other"))];
+  const filteredGallery = galleryFilter === "All" ? gallery : gallery.filter((image) => (gallerySectionsMap.get(image.sectionId) || "Other") === galleryFilter);
   const needsFollowUpCount = leads.filter((lead) => Date.now() - lead.lastStatusChangeAt > 1000 * 60 * 60 * 24).length;
   const visibleServices = services.filter((service) => service.isActive).length;
   const latestActivities = [...activities].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
