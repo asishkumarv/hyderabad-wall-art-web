@@ -96,9 +96,9 @@ export default function Header() {
           <div className="flex h-16 items-center justify-between md:h-20">
             <Link to="/" className="flex min-w-0 items-center gap-2">
               <img src={logoImg} alt="Hyderabad Wall Arts" className="h-12 w-auto rounded-lg" />
-              <div className="hidden min-w-0 sm:block">
-                <span className="block truncate font-heading text-lg font-bold leading-tight text-primary">Hyderabad</span>
-                <span className="block truncate font-heading text-xs uppercase tracking-wider text-gold">Wall Arts</span>
+              <div className="min-w-0 flex flex-col">
+                <span className="block truncate font-heading text-base font-bold leading-none text-primary sm:text-lg sm:leading-tight">Hyderabad</span>
+                <span className="block truncate font-heading text-[10px] uppercase tracking-wider text-gold sm:text-xs">Wall Arts</span>
               </div>
             </Link>
 
