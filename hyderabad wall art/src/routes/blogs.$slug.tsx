@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -35,38 +34,6 @@ function BlogDetailPage() {
   const galleryImages = (blog.gallery_images && blog.gallery_images.length > 0) 
     ? blog.gallery_images 
     : [blog.image];
-
-  const rows: { images: { url: string; index: number }[]; height: number }[] = [];
-  let currentRow: { url: string; index: number }[] = [];
-  let currentAspectRatioSum = 0;
-  
-  const targetHeight = window.innerWidth < 640 ? 140 : window.innerWidth < 768 ? 180 : 220;
-  const gap = 16; // gap-4 is 16px
-
-  galleryImages.forEach((img, i) => {
-    let initialRatio = 1.5;
-    if (img.toLowerCase().includes("woodcarved") || img.toLowerCase().includes("staircase") || img.toLowerCase().includes("stencil") || img.toLowerCase().includes("portrait") || img.toLowerCase().includes("potrait") || img.toLowerCase().includes("swami") || img.toLowerCase().includes("krishna")) {
-      initialRatio = 0.67;
-    }
-    const ratio = aspectRatios[img] || initialRatio;
-    currentRow.push({ url: img, index: i });
-    currentAspectRatioSum += ratio;
-
-    const rowWidth = currentAspectRatioSum * targetHeight + (currentRow.length - 1) * gap;
-    if (rowWidth >= containerWidth) {
-      let exactHeight = (containerWidth - (currentRow.length - 1) * gap) / currentAspectRatioSum;
-      if (exactHeight > targetHeight * 1.35) {
-        exactHeight = targetHeight;
-      }
-      rows.push({ images: currentRow, height: exactHeight });
-      currentRow = [];
-      currentAspectRatioSum = 0;
-    }
-  });
-
-  if (currentRow.length > 0) {
-    rows.push({ images: currentRow, height: targetHeight });
-  }
 
   return (
     <div>
