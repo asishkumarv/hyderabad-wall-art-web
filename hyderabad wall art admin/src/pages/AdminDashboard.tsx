@@ -263,11 +263,13 @@ export default function AdminDashboard() {
   const [editingImageOrder, setEditingImageOrder] = useState(0);
   const [editingImageIsActive, setEditingImageIsActive] = useState(true);
   const [editingImageSectionId, setEditingImageSectionId] = useState("");
+  const [editingImageUrl, setEditingImageUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ open: boolean; title: string; message: string; type: "success" | "error" }>({ open: false, title: "", message: "", type: "success" });
   const [serviceDrafts, setServiceDrafts] = useState<Record<string, any>>({});
 
   const galleryUploadRef = useRef<HTMLInputElement>(null);
+  const editImageUploadRef = useRef<HTMLInputElement>(null);
   const blogUploadRef = useRef<HTMLInputElement>(null);
   const blogGalleryUploadRef = useRef<HTMLInputElement>(null);
   const categoryUploadRef = useRef<HTMLInputElement>(null);
@@ -861,6 +863,50 @@ export default function AdminDashboard() {
                                         <CardContent className="p-4 space-y-3">
                                           {isEditing ? (
                                             <div className="space-y-3">
+                                              {/* Image Replace */}
+                                              <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Image</label>
+                                                <div
+                                                  className="relative group aspect-video w-full rounded-xl overflow-hidden border border-border cursor-pointer"
+                                                  onClick={() => editImageUploadRef.current?.click()}
+                                                >
+                                                  <img
+                                                    src={editingImageUrl || image.imageUrl}
+                                                    alt="Preview"
+                                                    className="w-full h-full object-cover"
+                                                  />
+                                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                                    <UploadCloud className="h-6 w-6 text-white" />
+                                                    <p className="text-white text-[10px] font-semibold">Click to replace image</p>
+                                                  </div>
+                                                  {isUploading && (
+                                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                <input
+                                                  ref={editImageUploadRef}
+                                                  type="file"
+                                                  accept="image/*"
+                                                  className="hidden"
+                                                  onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    setIsUploading(true);
+                                                    try {
+                                                      const url = await uploadToCloudinary(file, "image");
+                                                      setEditingImageUrl(url);
+                                                      toast.success("Image replaced — save to apply");
+                                                    } catch (err: any) {
+                                                      toast.error(err?.message ?? "Upload failed");
+                                                    } finally {
+                                                      setIsUploading(false);
+                                                      (e.target as HTMLInputElement).value = "";
+                                                    }
+                                                  }}
+                                                />
+                                              </div>
                                               <div className="space-y-1">
                                                 <label className="text-[10px] uppercase font-bold text-muted-foreground">Title</label>
                                                 <Input 
@@ -903,17 +949,20 @@ export default function AdminDashboard() {
                                                 <Switch checked={editingImageIsActive} onCheckedChange={setEditingImageIsActive} />
                                               </div>
                                               <div className="flex justify-end gap-2 pt-2">
-                                                <Button size="sm" variant="ghost" onClick={() => setEditingImageId(null)}>Cancel</Button>
+                                                <Button size="sm" variant="ghost" onClick={() => { setEditingImageId(null); setEditingImageUrl(""); }}>Cancel</Button>
                                                 <Button size="sm" variant="luxury" onClick={async () => {
                                                   try {
-                                                    await updateGalleryImage(image.id, {
+                                                    const updatePayload: any = {
                                                       title: editingImageTitle,
                                                       altText: editingImageAlt,
                                                       orderIndex: editingImageOrder,
                                                       isActive: editingImageIsActive,
                                                       sectionId: editingImageSectionId
-                                                    });
+                                                    };
+                                                    if (editingImageUrl) updatePayload.imageUrl = editingImageUrl;
+                                                    await updateGalleryImage(image.id, updatePayload);
                                                     setEditingImageId(null);
+                                                    setEditingImageUrl("");
                                                     toast.success("Artwork updated");
                                                   } catch (err: any) {
                                                     toast.error(err?.message ?? "Update failed");
@@ -941,6 +990,7 @@ export default function AdminDashboard() {
                                                       setEditingImageOrder(image.orderIndex);
                                                       setEditingImageIsActive(image.isActive);
                                                       setEditingImageSectionId(image.sectionId);
+                                                      setEditingImageUrl("");
                                                     }}
                                                   >
                                                     <FileText className="h-4 w-4" />

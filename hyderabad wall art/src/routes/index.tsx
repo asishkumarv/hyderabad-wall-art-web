@@ -29,41 +29,8 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function getInitialAspectRatio(title: string) {
-  const t = title.toLowerCase();
-  if (
-    t.includes("carving") ||
-    t.includes("bala") ||
-    t.includes("krishna") ||
-    t.includes("lalla") ||
-    t.includes("swami") ||
-    t.includes("rama") ||
-    t.includes("lord") ||
-    t.includes("portrait") ||
-    t.includes("potrait") ||
-    t.includes("horses") ||
-    t.includes("hourse") ||
-    t.includes("flute")
-  ) {
-    return 0.67; // Portrait
-  }
-  return 1.5; // Landscape
-}
-
 function Index() {
   const { services: apiServices, gallerySections, gallery, testimonials: apiTestimonials, pages, isLoading } = useStore();
-  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
-  const [containerWidth, setContainerWidth] = useState(1200);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const padding = window.innerWidth < 640 ? 32 : window.innerWidth < 1024 ? 48 : 64;
-      setContainerWidth(Math.min(1216, window.innerWidth - padding));
-    };
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // Fallbacks if DB is empty
   const heroSlides = (pages.home.heroSlides && pages.home.heroSlides.length > 0)
@@ -246,36 +213,6 @@ function Index() {
                   
                 if (sectionImages.length === 0) return null;
 
-                // Group images into justified rows
-                const rows: { images: GalleryImage[]; height: number }[] = [];
-                let currentRow: GalleryImage[] = [];
-                let currentAspectRatioSum = 0;
-                
-                const targetHeight = window.innerWidth < 640 ? 180 : window.innerWidth < 768 ? 220 : window.innerWidth < 1024 ? 260 : 300;
-                const gap = 24; // gap-6 is 24px
-
-                sectionImages.forEach((image) => {
-                  const ratio = aspectRatios[image.id] || getInitialAspectRatio(image.title);
-                  currentRow.push(image);
-                  currentAspectRatioSum += ratio;
-
-                  const rowWidth = currentAspectRatioSum * targetHeight + (currentRow.length - 1) * gap;
-                  if (rowWidth >= containerWidth) {
-                    // Row is full, calculate exact height
-                    let exactHeight = (containerWidth - (currentRow.length - 1) * gap) / currentAspectRatioSum;
-                    if (exactHeight > targetHeight * 1.35) {
-                      exactHeight = targetHeight;
-                    }
-                    rows.push({ images: currentRow, height: exactHeight });
-                    currentRow = [];
-                    currentAspectRatioSum = 0;
-                  }
-                });
-
-                if (currentRow.length > 0) {
-                  rows.push({ images: currentRow, height: targetHeight });
-                }
-                
                 return (
                   <div key={section.id} className="space-y-6">
                     <div className="flex items-center gap-4">
@@ -285,46 +222,25 @@ function Index() {
                       <div className="h-px bg-gold/30 flex-1" />
                     </div>
                     
-                    <div className="space-y-6">
-                      {rows.map((row, rowIndex) => (
-                        <div key={rowIndex} className="flex flex-wrap gap-6 justify-start">
-                          {row.images.map((image) => {
-                            const ratio = aspectRatios[image.id] || getInitialAspectRatio(image.title);
-                            return (
-                              <motion.div
-                                key={image.id}
-                                style={{
-                                  height: `${row.height}px`,
-                                  aspectRatio: `${ratio}`,
-                                }}
-                                className="group relative cursor-pointer overflow-hidden rounded-2xl bg-card border border-gold/10 hover:border-gold/30 transition-all duration-300 shadow-md hover:shadow-gold/10 flex-none"
-                                whileHover={{ y: -4 }}
-                                onClick={() => setSelectedLightboxImage(image)}
-                                layout
-                              >
-                                <img
-                                  src={image.imageUrl}
-                                  alt={image.altText || image.title}
-                                  onLoad={(e) => {
-                                    const img = e.currentTarget;
-                                    if (img.naturalHeight > 0) {
-                                      const loadedRatio = img.naturalWidth / img.naturalHeight;
-                                      if (aspectRatios[image.id] !== loadedRatio) {
-                                        setAspectRatios(prev => ({ ...prev, [image.id]: loadedRatio }));
-                                      }
-                                    }
-                                  }}
-                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                  loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
-                                  <h4 className="font-heading text-base font-bold text-white tracking-wide">{image.title}</h4>
-                                  {image.altText && <p className="text-xs text-white/70 mt-1 line-clamp-2">{image.altText}</p>}
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {sectionImages.map((image) => (
+                        <motion.div
+                          key={image.id}
+                          className="group relative cursor-pointer overflow-hidden rounded-[1.5rem] aspect-square bg-card border border-gold/10 hover:border-gold/30 transition-all duration-300 shadow-md hover:shadow-gold/10"
+                          whileHover={{ y: -4 }}
+                          onClick={() => setSelectedLightboxImage(image)}
+                        >
+                          <img
+                            src={image.imageUrl}
+                            alt={image.altText || image.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-5 z-20">
+                            <h4 className="font-heading text-base font-bold text-white tracking-wide">{image.title}</h4>
+                            {image.altText && <p className="text-xs text-white/70 mt-1 line-clamp-2">{image.altText}</p>}
+                          </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>

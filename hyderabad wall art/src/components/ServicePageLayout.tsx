@@ -58,54 +58,9 @@ export default function ServicePageLayout({ serviceKey, ...props }: ServicePageL
   const whyChoose = (dynamicService?.whyChooseUs && Array.isArray(dynamicService.whyChooseUs) && dynamicService.whyChooseUs.length > 0) ? dynamicService.whyChooseUs : (Array.isArray(props.whyChoose) ? props.whyChoose : []);
   const relatedServices = (dynamicService?.relatedServices && Array.isArray(dynamicService.relatedServices) && dynamicService.relatedServices.length > 0) ? dynamicService.relatedServices : (Array.isArray(props.relatedServices) ? props.relatedServices : []);
 
-  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
-  const [containerWidth, setContainerWidth] = useState(1200);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const padding = window.innerWidth < 640 ? 32 : window.innerWidth < 1024 ? 48 : 64;
-      setContainerWidth(Math.min(1216, window.innerWidth - padding));
-    };
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const galleryImages = (dynamicService?.images && dynamicService.images.length > 0) 
     ? dynamicService.images 
     : [image, image, image];
-
-  const rows: { images: { url: string; index: number }[]; height: number }[] = [];
-  let currentRow: { url: string; index: number }[] = [];
-  let currentAspectRatioSum = 0;
-  
-  const targetHeight = window.innerWidth < 640 ? 180 : window.innerWidth < 768 ? 220 : window.innerWidth < 1024 ? 260 : 300;
-  const gap = 24;
-
-  galleryImages.forEach((img, i) => {
-    let initialRatio = 1.5;
-    if (img.toLowerCase().includes("woodcarved") || img.toLowerCase().includes("staircase") || img.toLowerCase().includes("stencil")) {
-      initialRatio = 0.67;
-    }
-    const ratio = aspectRatios[img] || initialRatio;
-    currentRow.push({ url: img, index: i });
-    currentAspectRatioSum += ratio;
-
-    const rowWidth = currentAspectRatioSum * targetHeight + (currentRow.length - 1) * gap;
-    if (rowWidth >= containerWidth) {
-      let exactHeight = (containerWidth - (currentRow.length - 1) * gap) / currentAspectRatioSum;
-      if (exactHeight > targetHeight * 1.35) {
-        exactHeight = targetHeight;
-      }
-      rows.push({ images: currentRow, height: exactHeight });
-      currentRow = [];
-      currentAspectRatioSum = 0;
-    }
-  });
-
-  if (currentRow.length > 0) {
-    rows.push({ images: currentRow, height: targetHeight });
-  }
   return (
     <div>
       {/* Hero */}
@@ -142,48 +97,23 @@ export default function ServicePageLayout({ serviceKey, ...props }: ServicePageL
       <section className="py-16 bg-secondary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading subtitle="Our Work" title="Project Gallery" />
-          <div className="space-y-6">
-            {rows.map((row, rowIndex) => (
-              <div key={rowIndex} className="flex flex-wrap gap-6 justify-start">
-                {row.images.map((imgObj) => {
-                  let initialRatio = 1.5;
-                  if (imgObj.url.toLowerCase().includes("woodcarved") || imgObj.url.toLowerCase().includes("staircase") || imgObj.url.toLowerCase().includes("stencil")) {
-                    initialRatio = 0.67;
-                  }
-                  const ratio = aspectRatios[imgObj.url] || initialRatio;
-                  return (
-                    <motion.div
-                      key={imgObj.index}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: imgObj.index * 0.1 }}
-                      style={{
-                        height: `${row.height}px`,
-                        aspectRatio: `${ratio}`,
-                      }}
-                      className="rounded-2xl overflow-hidden group shadow-lg bg-card border border-gold/10 flex-none"
-                      layout
-                    >
-                      <img
-                        src={imgObj.url}
-                        alt={`${title} project ${imgObj.index + 1}`}
-                        onLoad={(e) => {
-                          const imageEl = e.currentTarget;
-                          if (imageEl.naturalHeight > 0) {
-                            const loadedRatio = imageEl.naturalWidth / imageEl.naturalHeight;
-                            if (aspectRatios[imgObj.url] !== loadedRatio) {
-                              setAspectRatios(prev => ({ ...prev, [imgObj.url]: loadedRatio }));
-                            }
-                          }
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                        loading="lazy"
-                      />
-                    </motion.div>
-                  );
-                })}
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {galleryImages.map((img, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group relative overflow-hidden rounded-[1.5rem] aspect-square bg-card border border-gold/10 hover:border-gold/30 transition-all duration-300 shadow-md hover:shadow-gold/10"
+              >
+                <img
+                  src={img}
+                  alt={`${title} project ${i + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </motion.div>
             ))}
           </div>
         </div>
